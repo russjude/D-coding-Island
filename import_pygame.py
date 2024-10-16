@@ -1,5 +1,5 @@
 import pygame
-
+# fuck you russ
 pygame.init()
 
 screen_width = 1200
