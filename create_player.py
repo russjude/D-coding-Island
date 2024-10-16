@@ -1,5 +1,10 @@
+"""
+File: create_player 
+
+Purpose: the purpose 
+"""
+
 import pygame
-import time
 from pygame.locals import *
 
 pygame.init()
@@ -150,5 +155,4 @@ while run:
 
 	pygame.display.update()
 
-time.sleep(2)
 pygame.quit()
