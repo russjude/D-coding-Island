@@ -486,29 +486,31 @@ run = True
 while run:
     # ... (existing game loop code remains the same)
 
-    if main_menu == True:
-        # ... (existing main menu code remains the same)
-    else:
-        world.draw()
+     if main_menu == True:
+    # ... (existing main menu code remains the same)
+        pass  # Keep your existing main menu code here
+else:
+    world.draw()
 
-        if game_over == 0:
-            blob_group.update()
-            platform_group.update()
-            #update score
-            #check if a coin has been collected
-            if pygame.sprite.spritecollide(player, coin_group, True):
-                score += 1
-                coin_fx.play()
+    if game_over == 0:
+        blob_group.update()
+        platform_group.update()
+        # update score
+        # check if a coin has been collected
+        if pygame.sprite.spritecollide(player, coin_group, True):
+            score += 1
+            coin_fx.play()
 
 
 class Exit(pygame.sprite.Sprite):
-	def __init__(self, x, y):
-		pygame.sprite.Sprite.__init__(self)
-		img = pygame.image.load('img/exit.png')
-		self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
-		self.rect = self.image.get_rect()
-		self.rect.x = x
-		self.rect.y = y
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load('img/exit.png')
+        self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
 
 
 
