@@ -11,8 +11,8 @@ pygame.init()
 clock = pygame.time.Clock()
 fps = 60
 
-screen_width = 576
-screen_height = 320
+screen_width = 1000
+screen_height = 1000
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Platformer')
@@ -376,6 +376,98 @@ class Coin(pygame.sprite.Sprite):
 		self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
 		self.rect = self.image.get_rect()
 		self.rect.center = (x, y)
+
+		import pygame
+import time
+
+class GameTimer:
+    def __init__(self):
+        self.start_time = time.time()
+        self.elapsed_time = 0
+        self.font = pygame.font.SysFont('Bauhaus 93', 30)
+
+    def update(self):
+        self.elapsed_time = time.time() - self.start_time
+
+    def draw(self, screen):
+        minutes, seconds = divmod(int(self.elapsed_time), 60)
+        time_str = f"{minutes:02d}:{seconds:02d}"
+        time_surface = self.font.render(time_str, True, (255, 255, 255))
+        screen.blit(time_surface, (screen_width - 100, 10))
+
+    def reset(self):
+        self.start_time = time.time()
+        self.elapsed_time = 0
+
+    def save_time(self, level):
+        with open('level_times.txt', 'a') as f:
+            f.write(f"Level {level}: {int(self.elapsed_time)} seconds\n")
+
+# Create a GameTimer instance
+game_timer = GameTimer()
+
+# Modify the main game loop
+run = True
+while run:
+    clock.tick(fps)
+
+    screen.blit(bg_img, (0, 0))
+    screen.blit(sun_img, (100, 100))
+
+    if main_menu == True:
+        if exit_button.draw():
+            run = False
+        if start_button.draw():
+            main_menu = False
+            game_timer.reset()  # Reset the timer when starting the game
+    else:
+        world.draw()
+
+        if game_over == 0:
+            blob_group.update()
+            platform_group.update()
+            game_timer.update()  # Update the timer
+            game_timer.draw(screen)  # Draw the timer
+
+            # ... (rest of the game logic)
+
+        game_over = player.update(game_over)
+
+        # if player has died
+        if game_over == -1:
+            if restart_button.draw():
+                world_data = []
+                world = reset_level(level)
+                game_over = 0
+                score = 0
+                game_timer.reset()  # Reset the timer when restarting the level
+
+        # if player has completed the level
+        if game_over == 1:
+            game_timer.save_time(level)  # Save the time for the completed level
+            level += 1
+            if level <= max_levels:
+                world_data = []
+                world = reset_level(level)
+                game_over = 0
+                game_timer.reset()  # Reset the timer for the new level
+            else:
+                draw_text('YOU WIN!', font, blue, (screen_width // 2) - 140, screen_height // 2)
+                if restart_button.draw():
+                    level = 1
+                    world_data = []
+                    world = reset_level(level)
+                    game_over = 0
+                    score = 0
+                    game_timer.reset()  # Reset the timer when restarting the game
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+    pygame.display.update()
+
+pygame.quit()
 
 class HeartContainer:
     def __init__(self, max_hearts=5):
