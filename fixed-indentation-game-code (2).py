@@ -1,4 +1,5 @@
 import pygame
+import sys
 from pygame.locals import *
 from pygame import mixer
 import pickle
@@ -53,6 +54,12 @@ jump_fx = pygame.mixer.Sound('img/jump.wav')
 jump_fx.set_volume(0.5)
 game_over_fx = pygame.mixer.Sound('img/game_over.wav')
 game_over_fx.set_volume(0.5)
+
+blob_group = pygame.sprite.Group()
+platform_group = pygame.sprite.Group()
+lava_group = pygame.sprite.Group()
+coin_group = pygame.sprite.Group()
+exit_group = pygame.sprite.Group()
 
 
 def draw_text(text, font, text_col, x, y):
@@ -109,6 +116,11 @@ class Button():
 
 		return action
 
+
+#create buttons
+restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
+start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
+exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
 
 class Player():
 	def __init__(self, x, y):
@@ -303,7 +315,7 @@ class World():
 					coin = Coin(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
 					coin_group.add(coin)
 				if tile == 8:
-					exit = Exit(col_count * tile_size, row_count * tile_size - (tile_size // 2))
+					exit = exit(col_count * tile_size, row_count * tile_size - (tile_size // 2))
 					exit_group.add(exit)
 				col_count += 1
 			row_count += 1
@@ -376,6 +388,35 @@ class Coin(pygame.sprite.Sprite):
 		self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
 		self.rect = self.image.get_rect()
 		self.rect.center = (x, y)
+
+		import pygame
+import time
+
+class GameTimer:
+    def __init__(self):
+        self.start_time = time.time()
+        self.elapsed_time = 0
+        self.font = pygame.font.SysFont('Bauhaus 93', 30)
+
+    def update(self):
+        self.elapsed_time = time.time() - self.start_time
+
+    def draw(self, screen):
+        minutes, seconds = divmod(int(self.elapsed_time), 60)
+        time_str = f"{minutes:02d}:{seconds:02d}"
+        time_surface = self.font.render(time_str, True, (255, 255, 255))
+        screen.blit(time_surface, (screen_width - 100, 10))
+
+    def reset(self):
+        self.start_time = time.time()
+        self.elapsed_time = 0
+
+    def save_time(self, level):
+        with open('level_times.txt', 'a') as f:
+            f.write(f"Level {level}: {int(self.elapsed_time)} seconds\n")
+
+# Create a GameTimer instance
+game_timer = GameTimer()
 
 class HeartContainer:
     def __init__(self, max_hearts=5):
@@ -481,46 +522,6 @@ class HealthPickup(pygame.sprite.Sprite):
 # Create health pickup group
 health_pickup_group = pygame.sprite.Group()
 
-# Modify the main game loop
-run = True
-while run:
-    # ... (existing game loop code remains the same)
-
-     if main_menu == True:
-    # ... (existing main menu code remains the same)
-        pass  # Keep your existing main menu code here
-else:
-    world.draw()
-
-    if game_over == 0:
-        blob_group.update()
-        platform_group.update()
-        # update score
-        # check if a coin has been collected
-        if pygame.sprite.spritecollide(player, coin_group, True):
-            score += 1
-            coin_fx.play()
-
-
-class Exit(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        img = pygame.image.load('img/exit.png')
-        self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-
-
-
-
-player = Player(100, screen_height - 130)
-
-blob_group = pygame.sprite.Group()
-platform_group = pygame.sprite.Group()
-lava_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
-exit_group = pygame.sprite.Group()
 
 #create dummy coin for showing the score
 score_coin = Coin(tile_size // 2, tile_size // 2)
@@ -533,77 +534,93 @@ if path.exists(f'level{level}_data'):
 world = World(world_data)
 
 
-#create buttons
-restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
-start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
-exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
 
+# Create necessary instances
+player = Player(100, screen_height - 130)
+game_timer = GameTimer()
 
+# Load initial level
+if path.exists(f'level{level}_data'):
+    pickle_in = open(f'level{level}_data', 'rb')
+    world_data = pickle.load(pickle_in)
+world = World(world_data)
+
+# Create dummy coin for showing the score
+score_coin = Coin(tile_size // 2, tile_size // 2)
+coin_group.add(score_coin)
+
+# Main gameloop
 run = True
 while run:
+    clock.tick(fps)
 
-	clock.tick(fps)
+    screen.blit(bg_img, (0, 0))
+    screen.blit(sun_img, (100, 100))
 
-	screen.blit(bg_img, (0, 0))
-	screen.blit(sun_img, (100, 100))
+    if main_menu:
+        if exit_button.draw():
+            run = False
+        elif start_button.draw():
+            main_menu = False
+            game_timer.reset()  # Reset timer when starting the game
+    else:
+        world.draw()
 
-	if main_menu == True:
-		if exit_button.draw():
-			run = False
-		if start_button.draw():
-			main_menu = False
-	else:
-		world.draw()
+        if game_over == 0:
+            blob_group.update()
+            platform_group.update()
+            game_timer.update()
+            game_timer.draw(screen)
 
-		if game_over == 0:
-			blob_group.update()
-			platform_group.update()
-			#update score
-			#check if a coin has been collected
-			if pygame.sprite.spritecollide(player, coin_group, True):
-				score += 1
-				coin_fx.play()
-			draw_text('X ' + str(score), font_score, white, tile_size - 10, 10)
-		
-		blob_group.draw(screen)
-		platform_group.draw(screen)
-		lava_group.draw(screen)
-		coin_group.draw(screen)
-		exit_group.draw(screen)
+            # Update score
+            if pygame.sprite.spritecollide(player, coin_group, True):
+                score += 1
+                coin_fx.play()
+            draw_text('X ' + str(score), font_score, white, tile_size - 10, 10)
 
-		game_over = player.update(game_over)
+            # Draw all sprite groups
+            blob_group.draw(screen)
+            platform_group.draw(screen)
+            lava_group.draw(screen)
+            coin_group.draw(screen)
+            exit_group.draw(screen)
+            health_pickup_group.draw(screen)
 
-		#if player has died
-		if game_over == -1:
-			if restart_button.draw():
-				world_data = []
-				world = reset_level(level)
-				game_over = 0
-				score = 0
+            game_over = player.update(game_over)
 
-		#if player has completed the level
-		if game_over == 1:
-			#reset game and go to next level
-			level += 1
-			if level <= max_levels:
-				#reset level
-				world_data = []
-				world = reset_level(level)
-				game_over = 0
-			else:
-				draw_text('YOU WIN!', font, blue, (screen_width // 2) - 140, screen_height // 2)
-				if restart_button.draw():
-					level = 1
-					#reset level
-					world_data = []
-					world = reset_level(level)
-					game_over = 0
-					score = 0
+        # If player has died
+        if game_over == -1:
+            if restart_button.draw():
+                world_data = []
+                world = reset_level(level)
+                game_over = 0
+                score = 0
+                game_timer.reset()
 
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
-			run = False
+        # If player has completed the level
+        if game_over == 1:
+            game_timer.save_time(level)
+            level += 1
+            if level <= max_levels:
+                world_data = []
+                world = reset_level(level)
+                game_over = 0
+                game_timer.reset()
+            else:
+                draw_text('YOU WIN!', font, blue, (screen_width // 2) - 140, screen_height // 2)
+                if restart_button.draw():
+                    level = 1
+                    world_data = []
+                    world = reset_level(level)
+                    game_over = 0
+                    score = 0
+                    game_timer.reset()
 
-	pygame.display.update()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+    pygame.display.update()
 
 pygame.quit()
+sys.exit()
