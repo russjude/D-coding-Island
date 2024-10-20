@@ -81,6 +81,41 @@ def reset_level(level):
 	coin_group.add(score_coin)
 	return world
 
+def eye_blink_effect(blink_count=2, blink_speed=0.5):
+    original_surface = screen.copy()
+
+    for _ in range(blink_count):
+        # Closing eye effect
+        for i in range(20):
+            screen.blit(original_surface, (0, 0))
+            height = int(screen_height * (i / 20)**2)  # Use quadratic easing for more natural movement
+            pygame.draw.rect(screen, (0, 0, 0), (0, 0, screen_width, height))
+            pygame.draw.rect(screen, (0, 0, 0), (0, screen_height - height, screen_width, height))
+            pygame.display.update()
+            pygame.time.wait(int((blink_speed / 40) * 1000))
+
+        # Eye closed
+        screen.fill((0, 0, 0))
+        pygame.display.update()
+        pygame.time.wait(int(blink_speed * 500))  # Half the blink_speed for closed eye
+
+        # Opening eye effect
+        for i in range(20, 0, -1):
+            screen.blit(original_surface, (0, 0))
+            height = int(screen_height * (i / 20)**2)  # Use quadratic easing for more natural movement
+            pygame.draw.rect(screen, (0, 0, 0), (0, 0, screen_width, height))
+            pygame.draw.rect(screen, (0, 0, 0), (0, screen_height - height, screen_width, height))
+            pygame.display.update()
+            pygame.time.wait(int((blink_speed / 40) * 1000))
+
+        # Pause between blinks
+        screen.blit(original_surface, (0, 0))
+        pygame.display.update()
+        pygame.time.wait(int(blink_speed * 2000))  # 2 seconds pause between blinks
+
+    # Ensure the original screen is restored
+    screen.blit(original_surface, (0, 0))
+    pygame.display.update()
 
 class Button():
 	def __init__(self, x, y, image):
@@ -429,6 +464,7 @@ while run:
 			run = False
 		if start_button.draw():
 			main_menu = False
+			eye_blink_effect(blink_count=3, blink_speed=0.4)			
 	else:
 		world.draw()
 
