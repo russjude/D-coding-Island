@@ -39,7 +39,8 @@ blue = (0, 0, 255)
 
 #load images
 sun_img = pygame.image.load('img/sun.png')
-bg_img = pygame.image.load('img/sky.png')
+bg_img = pygame.image.load('img/Background.png')
+bg_img = pygame.transform.scale(bg_img, (screen_width, screen_height))
 restart_img = pygame.image.load('img/restart_btn.png')
 start_img = pygame.image.load('img/start_btn.png')
 exit_img = pygame.image.load('img/exit_btn.png')
@@ -318,7 +319,7 @@ class World():
 class Enemy(pygame.sprite.Sprite):
 	def __init__(self, x, y):
 		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.image.load('img/blob.png')
+		self.image = pygame.image.load('img/Zombie.png')
 		self.rect = self.image.get_rect()
 		self.rect.x = x
 		self.rect.y = y
@@ -336,7 +337,7 @@ class Enemy(pygame.sprite.Sprite):
 class Platform(pygame.sprite.Sprite):
 	def __init__(self, x, y, move_x, move_y):
 		pygame.sprite.Sprite.__init__(self)
-		img = pygame.image.load('img/platform.png')
+		img = pygame.image.load('img/grass_plat.png')
 		self.image = pygame.transform.scale(img, (tile_size, tile_size // 2))
 		self.rect = self.image.get_rect()
 		self.rect.x = x
