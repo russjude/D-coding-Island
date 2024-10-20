@@ -4,6 +4,7 @@ from pygame import mixer
 import pickle
 from os import path
 
+
 pygame.mixer.pre_init(44100, -16, 2, 512)
 mixer.init()
 pygame.init()
@@ -39,7 +40,8 @@ blue = (0, 0, 255)
 
 #load images
 sun_img = pygame.image.load('img/sun.png')
-bg_img = pygame.image.load('img/sky.png')
+bg_img = pygame.image.load('img/Background.png')
+bg_img = pygame.transform.scale(bg_img, (screen_width, screen_height))
 restart_img = pygame.image.load('img/restart_btn.png')
 start_img = pygame.image.load('img/start_btn.png')
 exit_img = pygame.image.load('img/exit_btn.png')
@@ -79,6 +81,41 @@ def reset_level(level):
 	coin_group.add(score_coin)
 	return world
 
+def eye_blink_effect(blink_count=2, blink_speed=0.5):
+    original_surface = screen.copy()
+
+    for _ in range(blink_count):
+        # Closing eye effect
+        for i in range(20):
+            screen.blit(original_surface, (0, 0))
+            height = int(screen_height * (i / 20)**2)  # Use quadratic easing for more natural movement
+            pygame.draw.rect(screen, (0, 0, 0), (0, 0, screen_width, height))
+            pygame.draw.rect(screen, (0, 0, 0), (0, screen_height - height, screen_width, height))
+            pygame.display.update()
+            pygame.time.wait(int((blink_speed / 40) * 1000))
+
+        # Eye closed
+        screen.fill((0, 0, 0))
+        pygame.display.update()
+        pygame.time.wait(int(blink_speed * 500))  # Half the blink_speed for closed eye
+
+        # Opening eye effect
+        for i in range(20, 0, -1):
+            screen.blit(original_surface, (0, 0))
+            height = int(screen_height * (i / 20)**2)  # Use quadratic easing for more natural movement
+            pygame.draw.rect(screen, (0, 0, 0), (0, 0, screen_width, height))
+            pygame.draw.rect(screen, (0, 0, 0), (0, screen_height - height, screen_width, height))
+            pygame.display.update()
+            pygame.time.wait(int((blink_speed / 40) * 1000))
+
+        # Pause between blinks
+        screen.blit(original_surface, (0, 0))
+        pygame.display.update()
+        pygame.time.wait(int(blink_speed * 2000))  # 2 seconds pause between blinks
+
+    # Ensure the original screen is restored
+    screen.blit(original_surface, (0, 0))
+    pygame.display.update()
 
 class Button():
 	def __init__(self, x, y, image):
@@ -318,7 +355,7 @@ class World():
 class Enemy(pygame.sprite.Sprite):
 	def __init__(self, x, y):
 		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.image.load('img/blob.png')
+		self.image = pygame.image.load('img/Zombie.png')
 		self.rect = self.image.get_rect()
 		self.rect.x = x
 		self.rect.y = y
@@ -336,7 +373,7 @@ class Enemy(pygame.sprite.Sprite):
 class Platform(pygame.sprite.Sprite):
 	def __init__(self, x, y, move_x, move_y):
 		pygame.sprite.Sprite.__init__(self)
-		img = pygame.image.load('img/platform.png')
+		img = pygame.image.load('img/grass_plat.png')
 		self.image = pygame.transform.scale(img, (tile_size, tile_size // 2))
 		self.rect = self.image.get_rect()
 		self.rect.x = x
@@ -427,6 +464,7 @@ while run:
 			run = False
 		if start_button.draw():
 			main_menu = False
+			eye_blink_effect(blink_count=3, blink_speed=0.4)			
 	else:
 		world.draw()
 
