@@ -4,6 +4,7 @@ from pygame import mixer
 import pickle
 from os import path
 
+
 pygame.mixer.pre_init(44100, -16, 2, 512)
 mixer.init()
 pygame.init()
