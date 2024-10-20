@@ -117,6 +117,103 @@ def eye_blink_effect(blink_count=2, blink_speed=0.5):
     screen.blit(original_surface, (0, 0))
     pygame.display.update()
 
+def reveal_text_gradually(screen, text, font, color, x, y, delay=150):
+    """Reveal text one character at a time, keeping the event loop active."""
+    start_time = pygame.time.get_ticks()
+    running = True
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return  # Ensure the game quits
+
+        elapsed_time = pygame.time.get_ticks() - start_time
+        char_count = elapsed_time // delay
+
+        # Clear the screen
+        screen.fill((0, 0, 0))  
+        
+        # Draw "Unknown Voice:" at the top
+        voice_font = pygame.font.Font(None, 48)
+        voice_surface = voice_font.render("Unknown Voice:", True, color)
+        voice_rect = voice_surface.get_rect(center=(screen.get_width() // 2, 50))
+        screen.blit(voice_surface, voice_rect)
+
+        # Draw the gradually revealed text
+        text_surface = font.render(text[:char_count], True, color)
+        text_rect = text_surface.get_rect(center=(x, y))
+        screen.blit(text_surface, text_rect)
+
+        pygame.display.update()
+
+        if char_count >= len(text):
+            running = False  # Stop when all characters are revealed
+
+def shake_text(screen, text, font, color, x, y, duration=1000, intensity=5):
+    """Shake text for a given duration, keeping the event loop active."""
+    start_time = pygame.time.get_ticks()
+    running = True
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return  # Ensure the game quits
+
+        elapsed_time = pygame.time.get_ticks() - start_time
+        if elapsed_time > duration:
+            running = False  # Stop after the duration
+
+        # Clear the screen
+        screen.fill((0, 0, 0))  
+
+        # Draw "Unknown Voice:" at the top
+        voice_font = pygame.font.Font(None, 48)
+        voice_surface = voice_font.render("Unknown Voice:", True, color)
+        voice_rect = voice_surface.get_rect(center=(screen.get_width() // 2, 50))
+        screen.blit(voice_surface, voice_rect)
+
+        # Draw the shaking text
+        offset_x = random.randint(-intensity, intensity)
+        offset_y = random.randint(-intensity, intensity)
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect(center=(x + offset_x, y + offset_y))
+        screen.blit(text_surface, text_rect)
+
+        pygame.display.update()
+        pygame.time.delay(50)  # Keep shaking at intervals
+
+def blink_and_reveal_text(screen, font):
+    """Simulate eye blink effect and reveal text with various effects."""
+    # Define text properties
+    text_color = (255, 255, 255)  # White color
+    center_x = screen.get_width() // 2
+    center_y = screen.get_height() // 2
+
+    # Use a smaller font for the quotes
+    quote_font = pygame.font.Font(None, 36)
+
+    # Reveal each line of text gradually
+    reveal_text_gradually(screen, "\"Hello?\"", quote_font, text_color, center_x, center_y, delay=150)
+    pygame.time.wait(1500)  # Wait between lines
+
+    reveal_text_gradually(screen, "\"Helloooo?\"", quote_font, text_color, center_x, center_y, delay=150)
+    pygame.time.wait(1500)  # Wait between lines
+
+    reveal_text_gradually(screen, "\"HELLO!!!\"", quote_font, text_color, center_x, center_y, delay=100)
+
+    pygame.time.wait(1000)  # Wait after shaking
+
+    # Fade back to the game
+    original_surface = pygame.display.get_surface().copy()
+    for alpha in range(0, 255, 5):
+        screen.fill((0, 0, 0))
+        original_surface.set_alpha(alpha)
+        screen.blit(original_surface, (0, 0))
+        pygame.display.update()
+        pygame.time.wait(20)
+
 class Button():
 	def __init__(self, x, y, image):
 		self.image = image
@@ -393,9 +490,6 @@ class Platform(pygame.sprite.Sprite):
 			self.move_counter *= -1
 
 
-
-
-
 class Lava(pygame.sprite.Sprite):
 	def __init__(self, x, y):
 		pygame.sprite.Sprite.__init__(self)
@@ -464,7 +558,7 @@ while run:
 			run = False
 		if start_button.draw():
 			main_menu = False
-			eye_blink_effect(blink_count=3, blink_speed=0.4)			
+			blink_and_reveal_text(screen, pygame.font.Font(None, 36))		
 	else:
 		world.draw()
 
