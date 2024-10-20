@@ -243,7 +243,7 @@ class Player():
 		self.counter = 0
 		for num in range(1, 5):
 			img_right = pygame.image.load(f'img/dino{num}.png')
-			img_right = pygame.transform.scale(img_right, (40, 80))
+			img_right = pygame.transform.scale(img_right, (30, 40))
 			img_left = pygame.transform.flip(img_right, True, False)
 			self.images_right.append(img_right)
 			self.images_left.append(img_left)
@@ -266,22 +266,22 @@ class World():
 		self.tile_list = []
 
 		#load images
-		dirt_img = pygame.image.load('img/dirt.png')
-		grass_img = pygame.image.load('img/grass.png')
+		dirt_block_img = pygame.image.load('img/dirt_block.png')
+		grass_block_img = pygame.image.load('img/grass_block.png')
 
 		row_count = 0
 		for row in data:
 			col_count = 0
 			for tile in row:
 				if tile == 1:
-					img = pygame.transform.scale(dirt_img, (tile_size, tile_size))
+					img = pygame.transform.scale(dirt_block_img, (tile_size, tile_size))
 					img_rect = img.get_rect()
 					img_rect.x = col_count * tile_size
 					img_rect.y = row_count * tile_size
 					tile = (img, img_rect)
 					self.tile_list.append(tile)
 				if tile == 2:
-					img = pygame.transform.scale(grass_img, (tile_size, tile_size))
+					img = pygame.transform.scale(grass_block_img, (tile_size, tile_size))
 					img_rect = img.get_rect()
 					img_rect.x = col_count * tile_size
 					img_rect.y = row_count * tile_size
