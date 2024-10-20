@@ -1,4 +1,5 @@
 import pygame
+import sys
 from pygame.locals import *
 from pygame import mixer
 import pickle
@@ -53,6 +54,12 @@ jump_fx = pygame.mixer.Sound('img/jump.wav')
 jump_fx.set_volume(0.5)
 game_over_fx = pygame.mixer.Sound('img/game_over.wav')
 game_over_fx.set_volume(0.5)
+
+blob_group = pygame.sprite.Group()
+platform_group = pygame.sprite.Group()
+lava_group = pygame.sprite.Group()
+coin_group = pygame.sprite.Group()
+exit_group = pygame.sprite.Group()
 
 
 def draw_text(text, font, text_col, x, y):
@@ -109,6 +116,11 @@ class Button():
 
 		return action
 
+
+#create buttons
+restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
+start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
+exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
 
 class Player():
 	def __init__(self, x, y):
@@ -413,15 +425,17 @@ while run:
 
     screen.blit(bg_img, (0, 0))
     screen.blit(sun_img, (100, 100))
-
-    if main_menu == True:
+	
+    if main_menu:
+        # Main menu logic here
         if exit_button.draw():
             run = False
-        if start_button.draw():
-            main_menu = False
-            game_timer.reset()  # Reset the timer when starting the game
+        elif start_button.draw():
+            main_menu = False  # Start the game
+
     else:
-        world.draw()
+        world.draw()  # Game logic here
+
 
         if game_over == 0:
             blob_group.update()
@@ -431,7 +445,7 @@ while run:
 
             # ... (rest of the game logic)
 
-        game_over = player.update(game_over)
+        
 
         # if player has died
         if game_over == -1:
@@ -578,18 +592,18 @@ run = True
 while run:
     # ... (existing game loop code remains the same)
 
-     if main_menu == True:
+    if main_menu == True:
     # ... (existing main menu code remains the same)
         pass  # Keep your existing main menu code here
 else:
-    world.draw()
+    # world.draw()
 
     if game_over == 0:
         blob_group.update()
         platform_group.update()
         # update score
         # check if a coin has been collected
-        if pygame.sprite.spritecollide(player, coin_group, True):
+        if pygame.sprite.spritecollide(coin_group, True):
             score += 1
             coin_fx.play()
 
@@ -608,11 +622,6 @@ class Exit(pygame.sprite.Sprite):
 
 player = Player(100, screen_height - 130)
 
-blob_group = pygame.sprite.Group()
-platform_group = pygame.sprite.Group()
-lava_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
-exit_group = pygame.sprite.Group()
 
 #create dummy coin for showing the score
 score_coin = Coin(tile_size // 2, tile_size // 2)
@@ -625,10 +634,6 @@ if path.exists(f'level{level}_data'):
 world = World(world_data)
 
 
-#create buttons
-restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
-start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
-exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
 
 
 run = True
@@ -642,7 +647,7 @@ while run:
 	if main_menu == True:
 		if exit_button.draw():
 			run = False
-		if start_button.draw():
+		elif start_button.draw():
 			main_menu = False
 	else:
 		world.draw()
@@ -699,3 +704,4 @@ while run:
 	pygame.display.update()
 
 pygame.quit()
+sys.exit()
