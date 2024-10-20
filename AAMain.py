@@ -1,5 +1,4 @@
 import pygame
-import sys
 from pygame.locals import *
 from pygame import mixer
 import pickle
@@ -54,12 +53,6 @@ jump_fx = pygame.mixer.Sound('img/jump.wav')
 jump_fx.set_volume(0.5)
 game_over_fx = pygame.mixer.Sound('img/game_over.wav')
 game_over_fx.set_volume(0.5)
-
-blob_group = pygame.sprite.Group()
-platform_group = pygame.sprite.Group()
-lava_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
-exit_group = pygame.sprite.Group()
 
 
 def draw_text(text, font, text_col, x, y):
@@ -117,11 +110,6 @@ class Button():
 		return action
 
 
-#create buttons
-restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
-start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
-exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
-
 class Player():
 	def __init__(self, x, y):
 		self.reset(x, y)
@@ -160,7 +148,7 @@ class Player():
 
 			#handle animation
 			if self.counter > walk_cooldown:
-				self.counter = 0	
+				self.counter = 0
 				self.index += 1
 				if self.index >= len(self.images_right):
 					self.index = 0
@@ -389,239 +377,25 @@ class Coin(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect()
 		self.rect.center = (x, y)
 
-		import pygame
-import time
-
-class GameTimer:
-    def __init__(self):
-        self.start_time = time.time()
-        self.elapsed_time = 0
-        self.font = pygame.font.SysFont('Bauhaus 93', 30)
-
-    def update(self):
-        self.elapsed_time = time.time() - self.start_time
-
-    def draw(self, screen):
-        minutes, seconds = divmod(int(self.elapsed_time), 60)
-        time_str = f"{minutes:02d}:{seconds:02d}"
-        time_surface = self.font.render(time_str, True, (255, 255, 255))
-        screen.blit(time_surface, (screen_width - 100, 10))
-
-    def reset(self):
-        self.start_time = time.time()
-        self.elapsed_time = 0
-
-    def save_time(self, level):
-        with open('level_times.txt', 'a') as f:
-            f.write(f"Level {level}: {int(self.elapsed_time)} seconds\n")
-
-# Create a GameTimer instance
-game_timer = GameTimer()
-
-# Modify the main game loop
-run = True
-while run:
-    clock.tick(fps)
-
-    screen.blit(bg_img, (0, 0))
-    screen.blit(sun_img, (100, 100))
-	
-    if main_menu:
-        # Main menu logic here
-        if exit_button.draw():
-            run = False
-        elif start_button.draw():
-            main_menu = False  # Start the game
-
-    else:
-        world.draw()  # Game logic here
-
-
-        if game_over == 0:
-            blob_group.update()
-            platform_group.update()
-            game_timer.update()  # Update the timer
-            game_timer.draw(screen)  # Draw the timer
-
-            # ... (rest of the game logic)
-
-        
-
-        # if player has died
-        if game_over == -1:
-            if restart_button.draw():
-                world_data = []
-                world = reset_level(level)
-                game_over = 0
-                score = 0
-                game_timer.reset()  # Reset the timer when restarting the level
-
-        # if player has completed the level
-        if game_over == 1:
-            game_timer.save_time(level)  # Save the time for the completed level
-            level += 1
-            if level <= max_levels:
-                world_data = []
-                world = reset_level(level)
-                game_over = 0
-                game_timer.reset()  # Reset the timer for the new level
-            else:
-                draw_text('YOU WIN!', font, blue, (screen_width // 2) - 140, screen_height // 2)
-                if restart_button.draw():
-                    level = 1
-                    world_data = []
-                    world = reset_level(level)
-                    game_over = 0
-                    score = 0
-                    game_timer.reset()  # Reset the timer when restarting the game
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-
-    pygame.display.update()
-
-pygame.quit()
-
-class HeartContainer:
-    def __init__(self, max_hearts=5):
-        self.max_hearts = max_hearts
-        self.current_hearts = max_hearts
-
-    def add_heart(self):
-        if self.current_hearts < self.max_hearts:
-            self.current_hearts += 1
-            return True
-        return False
-
-    def remove_heart(self):
-        if self.current_hearts > 0:
-            self.current_hearts -= 1
-            return True
-        return False
-
-    def get_hearts(self):
-        return self.current_hearts
-
-    def is_full(self):
-        return self.current_hearts == self.max_hearts
-
-    def display_hearts(self):
-        full_hearts = "❤️" * self.current_hearts
-        empty_hearts = "🖤" * (self.max_hearts - self.current_hearts)
-        return full_hearts + empty_hearts
-
-class Player():
-    def __init__(self, x, y):
-        self.reset(x, y)
-        self.health = HeartContainer()  # Add health attribute
-
-    def update(self, game_over):
-        dx = 0
-        dy = 0
-        walk_cooldown = 5
-        col_thresh = 20
-
-        if game_over == 0:
-            # ... (existing movement and animation code remains the same)
-
-            #check for collision with enemies
-            if pygame.sprite.spritecollide(self, blob_group, False):
-                if self.health.remove_heart():
-                    self.rect.x -= 20 * self.direction  # Push player back
-                else:
-                    game_over = -1
-                    game_over_fx.play()
-
-            #check for collision with lava
-            if pygame.sprite.spritecollide(self, lava_group, False):
-                if self.health.remove_heart():
-                    self.rect.y -= 20  # Push player up
-                else:
-                    game_over = -1
-                    game_over_fx.play()
-
-            # ... (rest of the update method remains the same)
-
-        elif game_over == -1:
-            self.image = self.dead_image
-            draw_text('GAME OVER!', font, blue, (screen_width // 2) - 200, screen_height // 2)
-            if self.rect.y > 200:
-                self.rect.y -= 5
-
-        #draw player onto screen
-        screen.blit(self.image, self.rect)
-
-        # Display hearts
-        draw_text(self.health.display_hearts(), font_score, white, 10, 10)
-
-        return game_over
-
-    def reset(self, x, y):
-        # ... (existing reset code remains the same)
-        self.health = HeartContainer()  # Reset health when player resets
-
-class World():
-    def __init__(self, data):
-        # ... (existing initialization code remains the same)
-
-        row_count = 0
-        for row in data:
-            col_count = 0
-            for tile in row:
-                # ... (existing tile creation code remains the same)
-                if tile == 9:  # New tile type for health pickup
-                    health_pickup = HealthPickup(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
-                    health_pickup_group.add(health_pickup)
-                col_count += 1
-            row_count += 1
-
-class HealthPickup(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        img = pygame.image.load('img/health.png')  # Make sure to create this image
-        self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
-        self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
-
-# Create health pickup group
-health_pickup_group = pygame.sprite.Group()
-
-# Modify the main game loop
-run = True
-while run:
-    # ... (existing game loop code remains the same)
-
-    if main_menu == True:
-    # ... (existing main menu code remains the same)
-        pass  # Keep your existing main menu code here
-else:
-    # world.draw()
-
-    if game_over == 0:
-        blob_group.update()
-        platform_group.update()
-        # update score
-        # check if a coin has been collected
-        if pygame.sprite.spritecollide(coin_group, True):
-            score += 1
-            coin_fx.play()
-
 
 class Exit(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        img = pygame.image.load('img/exit.png')
-        self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-
+	def __init__(self, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		img = pygame.image.load('img/exit.png')
+		self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
+		self.rect = self.image.get_rect()
+		self.rect.x = x
+		self.rect.y = y
 
 
 
 player = Player(100, screen_height - 130)
 
+blob_group = pygame.sprite.Group()
+platform_group = pygame.sprite.Group()
+lava_group = pygame.sprite.Group()
+coin_group = pygame.sprite.Group()
+exit_group = pygame.sprite.Group()
 
 #create dummy coin for showing the score
 score_coin = Coin(tile_size // 2, tile_size // 2)
@@ -634,6 +408,10 @@ if path.exists(f'level{level}_data'):
 world = World(world_data)
 
 
+#create buttons
+restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
+start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
+exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
 
 
 run = True
@@ -647,7 +425,7 @@ while run:
 	if main_menu == True:
 		if exit_button.draw():
 			run = False
-		elif start_button.draw():
+		if start_button.draw():
 			main_menu = False
 	else:
 		world.draw()
@@ -661,7 +439,7 @@ while run:
 				score += 1
 				coin_fx.play()
 			draw_text('X ' + str(score), font_score, white, tile_size - 10, 10)
-		
+
 		blob_group.draw(screen)
 		platform_group.draw(screen)
 		lava_group.draw(screen)
@@ -704,4 +482,3 @@ while run:
 	pygame.display.update()
 
 pygame.quit()
-sys.exit()
