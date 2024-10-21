@@ -28,7 +28,7 @@ font_score = pygame.font.SysFont('Bauhaus 93', 30)
 tile_size = 50
 game_over = 0
 main_menu = True
-level = 3
+level = 1
 max_levels = 7
 score = 0
 
@@ -369,7 +369,7 @@ class Player():
 
 		return game_over
 
-
+	
 	def reset(self, x, y):
 		self.images_right = []
 		self.images_left = []
@@ -518,6 +518,48 @@ class Exit(pygame.sprite.Sprite):
 		self.rect.x = x
 		self.rect.y = y
 
+level_questions = {
+    1: {"question": "What does this code print? print('Hello, World!')", "answer": "Hello, World!"},
+    2: {"question": "Decode this: print(str(2 + 2))", "answer": "4"},
+    3: {"question": "What's the output? print('Python'[1:4])", "answer": "yth"},
+    4: {"question": "Decode: print(len('code'))", "answer": "4"},
+    5: {"question": "Result of: print(list(range(3)))", "answer": "[0, 1, 2]"},
+    6: {"question": "Output of: print('a' * 3)", "answer": "aaa"},
+    7: {"question": "What prints? x = 5; print(f'{x + 2}')", "answer": "7"},
+    # Add more questions for each level
+}
+
+def ask_question(level):
+    if level not in level_questions:
+        return True  # If no question for this level, assume correct
+
+    question_data = level_questions[level]
+    question = question_data["question"]
+    correct_answer = question_data["answer"]
+    user_answer = ""
+
+    while True:
+        screen.fill((0, 0, 0))
+        draw_text("Level " + str(level) + " Question:", font, white, screen_width // 2 - 200, screen_height // 2 - 100)
+        draw_text(question, font_score, white, screen_width // 2 - 200, screen_height // 2 - 50)
+        draw_text("Your Answer: " + user_answer, font, white, screen_width // 2 - 200, screen_height // 2 + 50)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    if user_answer.lower().strip() == correct_answer.lower().strip():
+                        return True
+                    else:
+                        return False
+                elif event.key == pygame.K_BACKSPACE:
+                    user_answer = user_answer[:-1]
+                else:
+                    user_answer += event.unicode
+
+        pygame.display.update()
 
 
 player = Player(100, screen_height - 130)
@@ -588,24 +630,32 @@ while run:
 				game_over = 0
 				score = 0
 
-		#if player has completed the level
+
 		if game_over == 1:
-			#reset game and go to next level
-			level += 1
-			if level <= max_levels:
-				#reset level
-				world_data = []
-				world = reset_level(level)
-				game_over = 0
-			else:
-				draw_text('YOU WIN!', font, blue, (screen_width // 2) - 140, screen_height // 2)
-				if restart_button.draw():
-					level = 1
-					#reset level
+			if ask_question(level):
+				# Player answered correctly, move to next level
+				level += 1
+				if level <= max_levels:
 					world_data = []
 					world = reset_level(level)
 					game_over = 0
-					score = 0
+				else:
+					draw_text('YOU WIN!', font, blue, (screen_width // 2) - 140, screen_height // 2)
+					if restart_button.draw():
+						level = 1
+						world_data = []
+						world = reset_level(level)
+						game_over = 0
+						score = 0
+			else:
+				# Player answered incorrectly, show message and reset level
+				draw_text('Incorrect! Try the level again.', font, blue, (screen_width // 2) - 200, screen_height // 2)
+				pygame.display.update()
+				pygame.time.wait(2000)  # Wait for 2 seconds before resetting
+				world_data = []
+				world = reset_level(level)
+				game_over = 0
+
 
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
