@@ -18,7 +18,6 @@ screen_height = 1000
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Platformer')
 
-
 #define font
 font = pygame.font.SysFont('Bauhaus 93', 70)
 font_score = pygame.font.SysFont('Bauhaus 93', 30)
@@ -36,6 +35,7 @@ score = 0
 #define colours
 white = (255, 255, 255)
 blue = (0, 0, 255)
+
 
 
 #load images
@@ -57,10 +57,126 @@ game_over_fx = pygame.mixer.Sound('img/game_over.wav')
 game_over_fx.set_volume(0.5)
 
 
+class DialogueBox:
+    def __init__(self, screen, font):
+        self.screen = screen
+        self.font = font
+        self.box_color = (0, 0, 0, 180)  # Semi-transparent black
+        self.text_color = (255, 255, 255)  # White text
+        self.box_rect = pygame.Rect(50, screen_height - 300, screen_width - 100, 200)
+        self.active = False
+        self.current_text = ""
+        self.text_surface = None
+        
+    def show_dialogue(self, text, duration=3000):
+        self.active = True
+        self.current_text = text
+        screen.blit(bg_img, (0, 0))
+        screen.blit(sun_img, (100, 100))
+        
+        # Create semi-transparent surface for dialogue box
+        s = pygame.Surface((self.box_rect.width, self.box_rect.height))
+        s.set_alpha(128)
+        s.fill(self.box_color)
+        screen.blit(s, self.box_rect)
+        
+        # Render text
+        words = text.split()
+        lines = []
+        current_line = []
+        for word in words:
+            current_line.append(word)
+            test_line = ' '.join(current_line)
+            if self.font.size(test_line)[0] > self.box_rect.width - 20:
+                lines.append(' '.join(current_line[:-1]))
+                current_line = [word]
+        lines.append(' '.join(current_line))
+        
+        # Draw text
+        for i, line in enumerate(lines):
+            text_surface = self.font.render(line, True, self.text_color)
+            screen.blit(text_surface, (self.box_rect.x + 10, self.box_rect.y + 10 + i * 30))
+        
+        pygame.display.update()
+        pygame.time.wait(duration)
+        self.active = False
+
+    def get_player_name(self):
+        input_text = ""
+        input_active = True
+        prompt = "Enter your name:"
+        
+        while input_active:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return None
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN and input_text.strip():
+                        input_active = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        input_text = input_text[:-1]
+                    else:
+                        if len(input_text) < 20:  # Limit name length
+                            input_text += event.unicode
+            
+            screen.blit(bg_img, (0, 0))
+            screen.blit(sun_img, (100, 100))
+            
+            # Draw input box
+            s = pygame.Surface((self.box_rect.width, self.box_rect.height))
+            s.set_alpha(128)
+            s.fill(self.box_color)
+            screen.blit(s, self.box_rect)
+            
+            # Draw prompt
+            prompt_surface = self.font.render(prompt, True, self.text_color)
+            screen.blit(prompt_surface, (self.box_rect.x + 10, self.box_rect.y + 10))
+            
+            # Draw input text
+            input_surface = self.font.render(input_text, True, self.text_color)
+            screen.blit(input_surface, (self.box_rect.x + 10, self.box_rect.y + 50))
+            
+            pygame.display.flip()
+        
+        return input_text
+
+class StoryManager:
+    def __init__(self):
+        self.player_name = ""
+        self.current_stage = 0
+        self.storyline = [
+            "Welcome to Decoding Island! You've woken up on a mysterious island...",
+            "You must escape by solving coding puzzles and platforming challenges!",
+            "Be careful of the enemies and obstacles ahead...",
+            "Each level brings you closer to freedom, but also closer to the final boss!",
+            "The puzzles will get progressively harder. Are you ready for the challenge?"
+        ]
+        self.level_messages = {
+            1: "Level 1: The Beach - Your journey begins here...",
+            2: "Level 2: The Jungle - Things are getting trickier...",
+            3: "Level 3: The Mountains - The path grows more treacherous...",
+            4: "Level 4: The Temple - Ancient coding secrets lie within...",
+            5: "Level 5: The Summit - The final boss awaits...",
+            6: "Level 6: The Escape - One last challenge to freedom...",
+            7: "Level 7: Victory - You've mastered the Decoding Island!"
+        }
+        self.puzzles = {
+            1: {"question": "What does print('Hello') output?", "answer": "Hello"},
+            2: {"question": "What is 2 + 2 in Python?", "answer": "4"},
+            3: {"question": "What is len('code')?", "answer": "4"},
+            4: {"question": "What is the first index in a Python list?", "answer": "0"},
+            5: {"question": "Is Python case-sensitive? (yes/no)", "answer": "yes"},
+            6: {"question": "What type is 'True' in Python?", "answer": "bool"},
+            7: {"question": "What symbol is used for comments in Python?", "answer": "#"}
+        }
+		
 def draw_text(text, font, text_col, x, y):
 	img = font.render(text, True, text_col)
 	screen.blit(img, (x, y))
 
+dialogue_box = DialogueBox(screen, font_score)
+story_manager = StoryManager()
 
 #function to reset level
 def reset_level(level):
@@ -213,7 +329,32 @@ def blink_and_reveal_text(screen, font):
         screen.blit(original_surface, (0, 0))
         pygame.display.update()
         pygame.time.wait(20)
-
+		
+def solve_puzzle(dialogue_box, puzzle):
+    answer = ""
+    solving = True
+    while solving:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and answer.strip():
+                    solving = False
+                elif event.key == pygame.K_BACKSPACE:
+                    answer = answer[:-1]
+                else:
+                    answer += event.unicode
+        
+        screen.blit(bg_img, (0, 0))
+        screen.blit(sun_img, (100, 100))
+        
+        dialogue_box.show_dialogue(f"Puzzle: {puzzle['question']}\nYour answer: {answer}", 0)
+        
+        pygame.display.flip()
+    
+    return answer.strip().lower() == puzzle['answer'].lower()
+		
 class Button():
 	def __init__(self, x, y, image):
 		self.image = image
@@ -594,16 +735,17 @@ while run:
 
 	screen.blit(bg_img, (0, 0))
 	screen.blit(sun_img, (100, 100))
-
-	if main_menu == True:
-		if exit_button.draw():
-			run = False
+	
+	if main_menu:
 		if start_button.draw():
-			main_menu = False
-			blink_and_reveal_text(screen, pygame.font.Font(None, 36))		
+			if not story_manager.player_name:
+				story_manager.player_name = dialogue_box.get_player_name()
+				for intro_text in story_manager.storyline:
+					dialogue_box.show_dialogue(intro_text)
+				main_menu = False		
 	else:
 		world.draw()
-
+		
 		if game_over == 0:
 			blob_group.update()
 			platform_group.update()
@@ -622,8 +764,8 @@ while run:
 
 		game_over = player.update(game_over)
 
-		#if player has died
 		if game_over == -1:
+			draw_text(f'GAME OVER, {story_manager.player_name}!', font, blue, (screen_width // 2) - 200, screen_height // 2)
 			if restart_button.draw():
 				world_data = []
 				world = reset_level(level)
@@ -631,30 +773,65 @@ while run:
 				score = 0
 
 
+# In your main game loop, replace the level completion section with:
+
 		if game_over == 1:
-			if ask_question(level):
-				# Player answered correctly, move to next level
+			if level in story_manager.puzzles:
+				puzzle = story_manager.puzzles[level]
+				dialogue_box.show_dialogue(f"Solve this puzzle to proceed to the next level:")
+				if solve_puzzle(dialogue_box, puzzle):
+					dialogue_box.show_dialogue("Correct! Moving to the next level...")
+					level += 1
+					if level <= max_levels:
+						world_data = []
+						world = reset_level(level)
+						game_over = 0
+					else:
+						dialogue_box.show_dialogue(f"Congratulations {story_manager.player_name}!\nYou've escaped Decoding Island!")
+						if restart_button.draw():
+							level = 1
+							world_data = []
+							world = reset_level(level)
+							game_over = 0
+							score = 0
+				else:
+					dialogue_box.show_dialogue("Incorrect. Try again!")
+					game_over = 0  # Allow the player to try the level again
+			else:
 				level += 1
 				if level <= max_levels:
 					world_data = []
 					world = reset_level(level)
 					game_over = 0
 				else:
-					draw_text('YOU WIN!', font, blue, (screen_width // 2) - 140, screen_height // 2)
+					dialogue_box.show_dialogue(f"Congratulations {story_manager.player_name}!\nYou've escaped Decoding Island!")
 					if restart_button.draw():
 						level = 1
 						world_data = []
 						world = reset_level(level)
 						game_over = 0
 						score = 0
-			else:
-				# Player answered incorrectly, show message and reset level
-				draw_text('Incorrect! Try the level again.', font, blue, (screen_width // 2) - 200, screen_height // 2)
-				pygame.display.update()
-				pygame.time.wait(2000)  # Wait for 2 seconds before resetting
-				world_data = []
-				world = reset_level(level)
-				game_over = 0
+
+						# In the main game loop, add periodic story updates:
+
+		# In the main game loop, add periodic story updates:
+
+		if game_over == 0:
+			# ... (existing game logic)
+			
+			# Add periodic story updates
+			if score % 5 == 0 and score > 0:  # Every 5 coins collected
+				story_update = f"You've collected {score} coins, {story_manager.player_name}! Keep going!"
+				dialogue_box.show_dialogue(story_update)
+			
+			# Add level-specific story elements
+			if level == 3 and not hasattr(story_manager, 'level_3_message_shown'):
+				dialogue_box.show_dialogue("You've reached the mountains. The air is getting thinner...")
+				story_manager.level_3_message_shown = True
+			
+			if level == 5 and not hasattr(story_manager, 'boss_warning_shown'):
+				dialogue_box.show_dialogue("Be careful! The final boss is near. Prepare for the ultimate challenge!")
+				story_manager.boss_warning_shown = True
 
 
 	for event in pygame.event.get():
