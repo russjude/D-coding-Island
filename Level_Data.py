@@ -1,4 +1,4 @@
-Level_Data = {
+level_layouts = {
     1: [
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -126,4 +126,28 @@ Level_Data = {
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  1, 1, 1, 1, 1, 1, 1, 1, 1]
     ]
     # Add more levels as needed
+}
+
+level_graphics = {
+    1: {
+        'background': 'img/background_level1.png',
+        'tiles': {
+            1: 'img/dirt_block_level1.png',
+            2: 'img/grass_block_level1.png',
+            6: 'img/lava_level1.png',
+            7: 'img/coin_level1.png',
+            8: 'img/exit_level1.png',
+        }
+    },
+    2: {
+        'background': 'img/background_level2.png',
+        'tiles': {
+            1: 'img/dirt_block_level2.png',
+            2: 'img/grass_block_level2.png',
+            6: 'img/lava_level2.png',
+            7: 'img/coin_level2.png',
+            8: 'img/exit_level2.png',
+        }
+    }
+
 }

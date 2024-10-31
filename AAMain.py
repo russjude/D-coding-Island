@@ -101,6 +101,35 @@ class DialogueBox:
         pygame.time.wait(duration)
         self.active = False
 
+    def update(self):
+        if self.current_message:
+            current_time = pygame.time.get_ticks()
+            if current_time - self.message_timer > self.message_duration:
+                self.current_message = None
+            else:
+                # Create semi-transparent surface for dialogue box
+                s = pygame.Surface((self.box_rect.width, self.box_rect.height))
+                s.set_alpha(128)
+                s.fill(self.box_color)
+                screen.blit(s, self.box_rect)
+
+                # Render text
+                words = self.current_message.split()
+                lines = []
+                current_line = []
+                for word in words:
+                    current_line.append(word)
+                    test_line = ' '.join(current_line)
+                    if self.font.size(test_line)[0] > self.box_rect.width - 20:
+                        lines.append(' '.join(current_line[:-1]))
+                        current_line = [word]
+                lines.append(' '.join(current_line))
+
+                # Draw text
+                for i, line in enumerate(lines):
+                    text_surface = self.font.render(line, True, self.text_color)
+                    screen.blit(text_surface, (self.box_rect.x + 10, self.box_rect.y + 10 + i * 30))
+
     def get_player_name(self):
         input_text = ""
         input_active = True
@@ -754,6 +783,18 @@ while run:
 			if pygame.sprite.spritecollide(player, coin_group, True):
 				score += 1
 				coin_fx.play()
+				if score % 5 == 0 and score > 0:  # Every 5 coins collected
+					story_update = f"You've collected {score} coins, {story_manager.player_name}! Keep going!"
+					dialogue_box.show_dialogue(story_update, duration=1500)  # Show for 1.5 seconds
+					pygame.time.wait(500)  # Short pause before continuing
+				# Add level-specific story elements
+				if level == 3 and not hasattr(story_manager, 'level_3_message_shown'):
+					dialogue_box.show_dialogue("You've reached the mountains. The air is getting thinner...")
+					story_manager.level_3_message_shown = True
+				
+				if level == 5 and not hasattr(story_manager, 'boss_warning_shown'):
+					dialogue_box.show_dialogue("Be careful! The final boss is near. Prepare for the ultimate challenge!")
+					story_manager.boss_warning_shown = True
 			draw_text('X ' + str(score), font_score, white, tile_size - 10, 10)
 
 		blob_group.draw(screen)
@@ -763,6 +804,7 @@ while run:
 		exit_group.draw(screen)
 
 		game_over = player.update(game_over)
+		
 
 		if game_over == -1:
 			draw_text(f'GAME OVER, {story_manager.player_name}!', font, blue, (screen_width // 2) - 200, screen_height // 2)
@@ -815,24 +857,7 @@ while run:
 						# In the main game loop, add periodic story updates:
 
 		# In the main game loop, add periodic story updates:
-
-		if game_over == 0:
-			# ... (existing game logic)
-			
-			# Add periodic story updates
-			if score % 5 == 0 and score > 0:  # Every 5 coins collected
-				story_update = f"You've collected {score} coins, {story_manager.player_name}! Keep going!"
-				dialogue_box.show_dialogue(story_update)
-			
-			# Add level-specific story elements
-			if level == 3 and not hasattr(story_manager, 'level_3_message_shown'):
-				dialogue_box.show_dialogue("You've reached the mountains. The air is getting thinner...")
-				story_manager.level_3_message_shown = True
-			
-			if level == 5 and not hasattr(story_manager, 'boss_warning_shown'):
-				dialogue_box.show_dialogue("Be careful! The final boss is near. Prepare for the ultimate challenge!")
-				story_manager.boss_warning_shown = True
-
+		
 
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
