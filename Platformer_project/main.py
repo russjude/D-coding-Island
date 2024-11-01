@@ -3,7 +3,7 @@ from components.player import Player
 from components.world import World
 from components.enemy import Enemy
 from components.platform import Platform
-from components.objects import Lava, Coin, Exit
+from components.objects import Lava, key, Exit
 from components.button import Button
 from utils.helpers import draw_text, reset_level
 

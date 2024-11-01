@@ -135,7 +135,7 @@ level_graphics = {
             1: 'img/dirt_block_level1.png',
             2: 'img/grass_block_level1.png',
             6: 'img/lava_level1.png',
-            7: 'img/coin_level1.png',
+            7: 'img/key_level1.png',
             8: 'img/exit_level1.png',
         }
     },
@@ -145,7 +145,7 @@ level_graphics = {
             1: 'img/dirt_block_level2.png',
             2: 'img/grass_block_level2.png',
             6: 'img/lava_level2.png',
-            7: 'img/coin_level2.png',
+            7: 'img/key_level2.png',
             8: 'img/exit_level2.png',
         }
     }

@@ -3,7 +3,8 @@ from pygame.locals import *
 from pygame import mixer
 import pickle
 from os import path
-
+import time
+from Wordle import main as wordle_game  # Import the Wordle game
 
 pygame.mixer.pre_init(44100, -16, 2, 512)
 mixer.init()
@@ -32,6 +33,30 @@ max_levels = 7
 score = 0
 
 
+KEYS_REQUIRED = {
+    1: 3,  # Level 1 requires 2 keys
+    2: 2,  # Level 2 requires 3 keys
+    3: 4,  # Level 3 requires 4 keys
+    4: 5,  # Level 4 requires 5 keys
+    5: 6,  # Level 5 requires 6 keys
+    6: 7,  # Level 6 requires 7 keys
+    7: 10   # Level 7 requires 8 keys
+}
+
+LEVEL_SOUNDTRACKS = {
+    1: 'Louie Zong - BOSS RUSH/Louie Zong - BOSS RUSH - 01 Harvest Tyrant- ORCHARD OGRE.mp3',
+    2: 'Louie Zong - BOSS RUSH/Louie Zong - BOSS RUSH - 02 Porcine Pilot- HOGWYLLD.mp3',
+    3: 'Louie Zong - BOSS RUSH/Louie Zong - BOSS RUSH - 03 Maladaptive Mallard- KWACKPOT.mp3',
+    4: 'Louie Zong - BOSS RUSH/Louie Zong - BOSS RUSH - 04 Corrupted Comrade- CITRUS KNIGHT.mp3',
+    5: 'Louie Zong - BOSS RUSH/Louie Zong - BOSS RUSH - 05 ______REST ZONE______.mp3',
+    6: 'Louie Zong - BOSS RUSH/Louie Zong - BOSS RUSH - 06 Mini Boss- MINNIE BUS.mp3',
+    7: 'Louie Zong - BOSS RUSH/Louie Zong - BOSS RUSH - 07 Digital Goblin- LAN GNOME.mp3'
+}
+
+# Store original spawn point
+original_spawn_x = 100
+original_spawn_y = screen_height - 130
+
 #define colours
 white = (255, 255, 255)
 blue = (0, 0, 255)
@@ -49,8 +74,8 @@ exit_img = pygame.image.load('img/exit_btn.png')
 #load sounds
 pygame.mixer.music.load('img/music.wav')
 pygame.mixer.music.play(-1, 0.0, 5000)
-coin_fx = pygame.mixer.Sound('img/coin.wav')
-coin_fx.set_volume(0.5)
+key_fx = pygame.mixer.Sound('img/coin.wav')
+key_fx.set_volume(0.5)
 jump_fx = pygame.mixer.Sound('img/jump.wav')
 jump_fx.set_volume(0.5)
 game_over_fx = pygame.mixer.Sound('img/game_over.wav')
@@ -58,118 +83,168 @@ game_over_fx.set_volume(0.5)
 
 
 class DialogueBox:
-    def __init__(self, screen, font):
-        self.screen = screen
-        self.font = font
-        self.box_color = (0, 0, 0, 180)  # Semi-transparent black
-        self.text_color = (255, 255, 255)  # White text
-        self.box_rect = pygame.Rect(50, screen_height - 300, screen_width - 100, 200)
-        self.active = False
-        self.current_text = ""
-        self.text_surface = None
+	def __init__(self, screen, font):
+		self.screen = screen
+		self.font = font
+		self.box_color = (0, 0, 0, 180)  # Semi-transparent black
+		self.text_color = (255, 255, 255)  # White text
+		self.box_rect = pygame.Rect(50, screen_height - 300, screen_width - 100, 200)
+		self.active = False
+		self.current_text = ""
+		self.text_surface = None
+		self.waiting_for_input = False  # Add this line
         
-    def show_dialogue(self, text, duration=3000):
-        self.active = True
-        self.current_text = text
-        screen.blit(bg_img, (0, 0))
-        screen.blit(sun_img, (100, 100))
-        
-        # Create semi-transparent surface for dialogue box
-        s = pygame.Surface((self.box_rect.width, self.box_rect.height))
-        s.set_alpha(128)
-        s.fill(self.box_color)
-        screen.blit(s, self.box_rect)
-        
-        # Render text
-        words = text.split()
-        lines = []
-        current_line = []
-        for word in words:
-            current_line.append(word)
-            test_line = ' '.join(current_line)
-            if self.font.size(test_line)[0] > self.box_rect.width - 20:
-                lines.append(' '.join(current_line[:-1]))
-                current_line = [word]
-        lines.append(' '.join(current_line))
-        
-        # Draw text
-        for i, line in enumerate(lines):
-            text_surface = self.font.render(line, True, self.text_color)
-            screen.blit(text_surface, (self.box_rect.x + 10, self.box_rect.y + 10 + i * 30))
-        
-        pygame.display.update()
-        pygame.time.wait(duration)
-        self.active = False
+	def show_dialogue(self, text, duration = 3000, wait_for_input=False):
+		print(f"Showing dialogue: {text}")
+		self.active = True
+		self.current_text = text
+		self.waiting_for_input = wait_for_input  # Set the flag based on the parameter
+
+		screen.blit(bg_img, (0, 0))
+		screen.blit(sun_img, (100, 100))
+    
+		# Create semi-transparent surface for dialogue box
+		s = pygame.Surface((self.box_rect.width, self.box_rect.height))
+		s.set_alpha(128)
+		s.fill(self.box_color)
+		screen.blit(s, self.box_rect)
+    
+		# Render text
+		words = text.split()
+		lines = []
+		current_line = []
+		for word in words:
+			current_line.append(word)
+			test_line = ' '.join(current_line)
+			if self.font.size(test_line)[0] > self.box_rect.width - 20:
+				lines.append(' '.join(current_line[:-1]))
+				current_line = [word]
+		lines.append(' '.join(current_line))
+    
+		# Draw text
+		for i, line in enumerate(lines):
+			text_surface = self.font.render(line, True, self.text_color)
+			screen.blit(text_surface, (self.box_rect.x + 10, self.box_rect.y + 10 + i * 30))
+		
+		# Only show continue prompt for non-input dialogues
+		if not self.waiting_for_input:
+			continue_text = self.font.render("Press SPACE to continue...", True, (255, 255, 255))
+			screen.blit(continue_text, (self.box_rect.x + 10, self.box_rect.bottom - 30))
+		
+		pygame.display.update()
+    
+		# Only wait for space if not in input mode
+		if wait_for_input:
+			return
+		start_time = pygame.time.get_ticks()
+		while self.active:
+			current_time = pygame.time.get_ticks()
+			if current_time - start_time >= duration:
+				self.active = False  # End the dialogue
+				break
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					pygame.quit()
+					return
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_SPACE:
+						self.active = False
+						break 
+					
+		self.active = False
+		
+	def update(self):
+		if self.current_message:
+			current_time = pygame.time.get_ticks()
+			if current_time - self.message_timer > self.message_duration:
+				self.current_message = None
+			else:
+				# Create semi-transparent surface for dialogue box
+				s = pygame.Surface((self.box_rect.width, self.box_rect.height))
+				s.set_alpha(128)
+				s.fill(self.box_color)
+				screen.blit(s, self.box_rect)
+				
+				# Render text
+				words = self.current_message.split()
+				lines = []
+				current_line = []
+				for word in words:
+					current_line.append(word)
+					test_line = ' '.join(current_line)
+					if self.font.size(test_line)[0] > self.box_rect.width - 20:
+						lines.append(' '.join(current_line[:-1]))
+						current_line = [word]
+				lines.append(' '.join(current_line))
+				
+				# Draw text
+				for i, line in enumerate(lines):
+					text_surface = self.font.render(line, True, self.text_color)
+					screen.blit(text_surface, (self.box_rect.x + 10, self.box_rect.y + 10 + i * 30))
+	
+	def get_player_name(self):
+		input_text = ""
+		input_active = True
+		prompt = "Enter your name:"
+		
+		while input_active:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					pygame.quit()
+					return None
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_RETURN and input_text.strip():
+						input_active = False
+					elif event.key == pygame.K_BACKSPACE:
+						input_text = input_text[:-1]
+					else:
+						if len(input_text) < 20:  # Limit name length
+							input_text += event.unicode
+							
+			screen.blit(bg_img, (0, 0))
+			screen.blit(sun_img, (100, 100))
+			
+			# Draw input box
+			s = pygame.Surface((self.box_rect.width, self.box_rect.height))
+			s.set_alpha(128)
+			s.fill(self.box_color)
+			screen.blit(s, self.box_rect)
+			
+			# Draw prompt
+			prompt_surface = self.font.render(prompt, True, self.text_color)
+			screen.blit(prompt_surface, (self.box_rect.x + 10, self.box_rect.y + 10))
+			
+			# Draw input text
+			input_surface = self.font.render(input_text, True, self.text_color)
+			screen.blit(input_surface, (self.box_rect.x + 10, self.box_rect.y + 50))
+			
+			pygame.display.flip()
+			
+		return input_text
+
+class GameTimer:
+    def __init__(self):
+        self.start_time = time.time()
+        self.elapsed_time = 0
+        self.font = pygame.font.SysFont('Bauhaus 93', 30)
 
     def update(self):
-        if self.current_message:
-            current_time = pygame.time.get_ticks()
-            if current_time - self.message_timer > self.message_duration:
-                self.current_message = None
-            else:
-                # Create semi-transparent surface for dialogue box
-                s = pygame.Surface((self.box_rect.width, self.box_rect.height))
-                s.set_alpha(128)
-                s.fill(self.box_color)
-                screen.blit(s, self.box_rect)
+        self.elapsed_time = time.time() - self.start_time
 
-                # Render text
-                words = self.current_message.split()
-                lines = []
-                current_line = []
-                for word in words:
-                    current_line.append(word)
-                    test_line = ' '.join(current_line)
-                    if self.font.size(test_line)[0] > self.box_rect.width - 20:
-                        lines.append(' '.join(current_line[:-1]))
-                        current_line = [word]
-                lines.append(' '.join(current_line))
+    def draw(self, screen):
+        minutes, seconds = divmod(int(self.elapsed_time), 60)
+        time_str = f"{minutes:02d}:{seconds:02d}"
+        time_surface = self.font.render(time_str, True, (255, 255, 255))
+        screen.blit(time_surface, (screen_width - 100, 10))
 
-                # Draw text
-                for i, line in enumerate(lines):
-                    text_surface = self.font.render(line, True, self.text_color)
-                    screen.blit(text_surface, (self.box_rect.x + 10, self.box_rect.y + 10 + i * 30))
+    def reset(self):
+        self.start_time = time.time()
+        self.elapsed_time = 0
 
-    def get_player_name(self):
-        input_text = ""
-        input_active = True
-        prompt = "Enter your name:"
-        
-        while input_active:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    return None
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN and input_text.strip():
-                        input_active = False
-                    elif event.key == pygame.K_BACKSPACE:
-                        input_text = input_text[:-1]
-                    else:
-                        if len(input_text) < 20:  # Limit name length
-                            input_text += event.unicode
-            
-            screen.blit(bg_img, (0, 0))
-            screen.blit(sun_img, (100, 100))
-            
-            # Draw input box
-            s = pygame.Surface((self.box_rect.width, self.box_rect.height))
-            s.set_alpha(128)
-            s.fill(self.box_color)
-            screen.blit(s, self.box_rect)
-            
-            # Draw prompt
-            prompt_surface = self.font.render(prompt, True, self.text_color)
-            screen.blit(prompt_surface, (self.box_rect.x + 10, self.box_rect.y + 10))
-            
-            # Draw input text
-            input_surface = self.font.render(input_text, True, self.text_color)
-            screen.blit(input_surface, (self.box_rect.x + 10, self.box_rect.y + 50))
-            
-            pygame.display.flip()
-        
-        return input_text
-
+    def save_time(self, level):
+        with open('level_times.txt', 'a') as f:
+            f.write(f"Level {level}: {int(self.elapsed_time)} seconds\n")
+			
 class StoryManager:
     def __init__(self):
         self.player_name = ""
@@ -199,7 +274,21 @@ class StoryManager:
             6: {"question": "What type is 'True' in Python?", "answer": "bool"},
             7: {"question": "What symbol is used for comments in Python?", "answer": "#"}
         }
-		
+
+def play_wordle():
+    """Run the Wordle game and return True if the player wins, False otherwise."""
+    return wordle_game()  # Assume the main function in Wordle.py returns True for a win, False for a loss
+
+def solve_puzzle_wordle(dialogue_box, puzzle):
+    wordle_result = play_wordle()
+    if wordle_result:
+        dialogue_box.show_dialogue("You solved the Wordle puzzle! Moving to the next level...")
+        return True
+    else:
+        dialogue_box.show_dialogue("You didn't solve the Wordle puzzle. Try the level again!")
+        return False
+
+
 def draw_text(text, font, text_col, x, y):
 	img = font.render(text, True, text_col)
 	screen.blit(img, (x, y))
@@ -207,12 +296,17 @@ def draw_text(text, font, text_col, x, y):
 dialogue_box = DialogueBox(screen, font_score)
 story_manager = StoryManager()
 
+def reset(self, x, y):
+    self.rect.x = x
+    self.rect.y = y
+    # Other initialization code remains the same
+
 #function to reset level
 def reset_level(level):
 	player.reset(100, screen_height - 130)
 	blob_group.empty()
 	platform_group.empty()
-	coin_group.empty()
+	key_group.empty()
 	lava_group.empty()
 	exit_group.empty()
 
@@ -221,9 +315,9 @@ def reset_level(level):
 		pickle_in = open(f'level{level}_data', 'rb')
 		world_data = pickle.load(pickle_in)
 	world = World(world_data)
-	#create dummy coin for showing the score
-	score_coin = Coin(tile_size // 2, tile_size // 2)
-	coin_group.add(score_coin)
+	#create dummy key for showing the score
+	score_key = Key(tile_size // 2, tile_size // 2)
+	key_group.add(score_key)
 	return world
 
 def eye_blink_effect(blink_count=2, blink_speed=0.5):
@@ -359,21 +453,45 @@ def blink_and_reveal_text(screen, font):
         pygame.display.update()
         pygame.time.wait(20)
 		
+def change_music(level):
+    pygame.mixer.music.fadeout(500)  # Fade out current music
+    pygame.time.wait(500)  # Wait for fadeout to complete
+    if level in LEVEL_SOUNDTRACKS:
+        try:
+            pygame.mixer.music.load(LEVEL_SOUNDTRACKS[level])
+            pygame.mixer.music.play(-1)  # Loop indefinitely
+            pygame.mixer.music.set_volume(0.5)  # Adjust volume as needed
+        except Exception as e:
+            print(f"Could not load music for level {level}: {e}")
+
+change_music(level)  # Start the music for level 1
+
 def solve_puzzle(dialogue_box, puzzle):
     answer = ""
     solving = True
+    print("Entering solve_puzzle function")  # Debug print
+    dialogue_box.show_dialogue(f"Puzzle: {puzzle['question']}\nYour answer: ", wait_for_input=True)
+    
     while solving:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return False
             if event.type == pygame.KEYDOWN:
+                print(f"Key pressed: {event.unicode}")  # Debug print
                 if event.key == pygame.K_RETURN and answer.strip():
-                    solving = False
+                    print(f"Submitted answer: {answer}")  # Debug print
+                    return answer.strip().lower() == puzzle['answer'].lower()
                 elif event.key == pygame.K_BACKSPACE:
                     answer = answer[:-1]
                 else:
                     answer += event.unicode
+                
+                # Update the dialogue box with the current answer
+                dialogue_box.show_dialogue(f"Puzzle: {puzzle['question']}\nYour answer: {answer}", wait_for_input=True)
+        
+        pygame.display.flip()
+        clock.tick(fps)
         
         screen.blit(bg_img, (0, 0))
         screen.blit(sun_img, (100, 100))
@@ -604,8 +722,8 @@ class World():
 					lava = Lava(col_count * tile_size, row_count * tile_size + (tile_size // 2))
 					lava_group.add(lava)
 				if tile == 7:
-					coin = Coin(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
-					coin_group.add(coin)
+					key = Key(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
+					key_group.add(key)
 				if tile == 8:
 					exit = Exit(col_count * tile_size, row_count * tile_size - (tile_size // 2))
 					exit_group.add(exit)
@@ -670,11 +788,11 @@ class Lava(pygame.sprite.Sprite):
 		self.rect.y = y
 
 
-class Coin(pygame.sprite.Sprite):
+class Key(pygame.sprite.Sprite):
 	def __init__(self, x, y):
 		pygame.sprite.Sprite.__init__(self)
-		img = pygame.image.load('img/coin.png')
-		self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
+		img = pygame.image.load('img/key.png')
+		self.image = pygame.transform.scale(img, (tile_size // 2.5, tile_size // 2))
 		self.rect = self.image.get_rect()
 		self.rect.center = (x, y)
 
@@ -698,6 +816,82 @@ level_questions = {
     7: {"question": "What prints? x = 5; print(f'{x + 2}')", "answer": "7"},
     # Add more questions for each level
 }
+game_timer = GameTimer()
+
+def show_level_banner(screen, level, duration=2000):
+    """Show a level transition banner"""
+    # Create a semi-transparent overlay
+    overlay = pygame.Surface((screen_width, screen_height))
+    overlay.fill((0, 0, 0))
+    overlay.set_alpha(128)
+    screen.blit(overlay, (0, 0))
+    
+    # Draw level text
+    level_text = f"Level {level}"
+    draw_text(level_text, font, white, (screen_width // 2) - 100, screen_height // 2 - 50)
+    
+    # Draw keys required text
+    keys_text = f"Collect {KEYS_REQUIRED[level]} keys to proceed"
+    draw_text(keys_text, font_score, white, (screen_width // 2) - 150, screen_height // 2 + 20)
+    
+    pygame.display.update()
+    pygame.time.wait(duration)
+
+# Then modify your level transition code:
+if game_over == 1:
+    if score >= KEYS_REQUIRED[level]:
+        game_timer.save_time(level)
+        level += 1
+        if level <= max_levels:
+            world_data = []
+            world = reset_level(level)
+            game_over = 0
+            score = 0
+            game_timer.reset()
+            # Change music for new level
+            change_music(level)
+            # Show level banner
+            show_level_banner(screen, level)
+
+class LevelIndicator:
+    def __init__(self):
+        self.font = pygame.font.SysFont('Bauhaus 93', 30)
+        self.bg_color = (0, 0, 0, 128)  # Semi-transparent black
+        self.text_color = white
+        self.padding = 10
+        
+    def draw(self, screen, level, score, required_keys):
+        # Draw level indicator box
+        level_text = f"Level {level}"
+        key_text = f"keys: {score}/{required_keys}"
+        
+        # Create text surfaces
+        level_surface = self.font.render(level_text, True, self.text_color)
+        key_surface = self.font.render(key_text, True, self.text_color)
+        
+        # Calculate box dimensions
+        box_width = max(level_surface.get_width(), key_surface.get_width()) + self.padding * 2
+        box_height = level_surface.get_height() + key_surface.get_height() + self.padding * 3
+        
+        # Create semi-transparent background
+        bg_surface = pygame.Surface((box_width, box_height))
+        bg_surface.fill((0, 0, 0))
+        bg_surface.set_alpha(128)
+        
+        # Position the box in the top-right corner
+        box_x = screen_width - box_width - 10
+        box_y = 10
+        
+        # Draw background
+        screen.blit(bg_surface, (box_x, box_y))
+        
+        # Draw text
+        screen.blit(level_surface, (box_x + self.padding, box_y + self.padding))
+        screen.blit(key_surface, (box_x + self.padding, 
+                                 box_y + self.padding * 2 + level_surface.get_height()))
+
+# Initialize the level indicator
+level_indicator = LevelIndicator()
 
 def ask_question(level):
     if level not in level_questions:
@@ -737,12 +931,12 @@ player = Player(100, screen_height - 130)
 blob_group = pygame.sprite.Group()
 platform_group = pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
+key_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
 
 #create dummy coin for showing the score
-score_coin = Coin(tile_size // 2, tile_size // 2)
-coin_group.add(score_coin)
+score_key = Key(tile_size // 2, tile_size // 2)
+key_group.add(score_key)
 
 #load in level data and create world
 if path.exists(f'level{level}_data'):
@@ -764,28 +958,37 @@ while run:
 
 	screen.blit(bg_img, (0, 0))
 	screen.blit(sun_img, (100, 100))
-	
+
+	for event in pygame.event.get():
+		if event.type == pygame.QUIT:
+			run = False
+
 	if main_menu:
 		if start_button.draw():
 			if not story_manager.player_name:
 				story_manager.player_name = dialogue_box.get_player_name()
 				for intro_text in story_manager.storyline:
 					dialogue_box.show_dialogue(intro_text)
-				main_menu = False		
+				main_menu = False	
+		if exit_button.draw():
+			run = False
+	
 	else:
 		world.draw()
 		
 		if game_over == 0:
 			blob_group.update()
 			platform_group.update()
+			game_timer.update()  # Update the timer
+			game_timer.draw(screen)  # Draw the timer
 			#update score
-			#check if a coin has been collected
-			if pygame.sprite.spritecollide(player, coin_group, True):
+			#check if a key has been collected
+			if pygame.sprite.spritecollide(player, key_group, True):
 				score += 1
-				coin_fx.play()
-				if score % 5 == 0 and score > 0:  # Every 5 coins collected
-					story_update = f"You've collected {score} coins, {story_manager.player_name}! Keep going!"
-					dialogue_box.show_dialogue(story_update, duration=1500)  # Show for 1.5 seconds
+				key_fx.play()
+				if level == 2 and not hasattr(story_manager, 'level_2_message_shown'):
+					dialogue_box.show_dialogue("Your better than I thought...")
+					story_manager.level_2_message_shown = True
 					pygame.time.wait(500)  # Short pause before continuing
 				# Add level-specific story elements
 				if level == 3 and not hasattr(story_manager, 'level_3_message_shown'):
@@ -795,16 +998,34 @@ while run:
 				if level == 5 and not hasattr(story_manager, 'boss_warning_shown'):
 					dialogue_box.show_dialogue("Be careful! The final boss is near. Prepare for the ultimate challenge!")
 					story_manager.boss_warning_shown = True
-			draw_text('X ' + str(score), font_score, white, tile_size - 10, 10)
+			draw_text(f'Keys: {score}/{KEYS_REQUIRED[level]}', font_score, white, tile_size - 10, 10)
 
+			# When player reaches exit, check keys
+			if pygame.sprite.spritecollide(player, exit_group, False):
+				if score >= KEYS_REQUIRED[level]:
+					if level in story_manager.puzzles:
+						puzzle = story_manager.puzzles[level]
+						dialogue_box.show_dialogue(f"Solve this puzzle to proceed to the next level:")
+						pygame.display.update()
+						pygame.time.wait(1000)
+					game_over = 1
+				else:
+					draw_text(f'Need {KEYS_REQUIRED[level] - score} more keys!', 
+							font_score, white, 
+							screen_width // 2 - 100, screen_height // 2)
+					pygame.display.update()
+					pygame.time.wait(1000)
+					# Respawn player at the original spawn point
+					player.reset(original_spawn_x, original_spawn_y)  # Reset to original spawn
+					game_over = 0  # Allow the player to continue playing
+					
 		blob_group.draw(screen)
 		platform_group.draw(screen)
 		lava_group.draw(screen)
-		coin_group.draw(screen)
+		key_group.draw(screen)
 		exit_group.draw(screen)
 
 		game_over = player.update(game_over)
-		
 
 		if game_over == -1:
 			draw_text(f'GAME OVER, {story_manager.player_name}!', font, blue, (screen_width // 2) - 200, screen_height // 2)
@@ -814,49 +1035,54 @@ while run:
 				game_over = 0
 				score = 0
 
-
 # In your main game loop, replace the level completion section with:
 
 		if game_over == 1:
-			if level in story_manager.puzzles:
-				puzzle = story_manager.puzzles[level]
-				dialogue_box.show_dialogue(f"Solve this puzzle to proceed to the next level:")
-				if solve_puzzle(dialogue_box, puzzle):
-					dialogue_box.show_dialogue("Correct! Moving to the next level...")
+			if score >= KEYS_REQUIRED[level]:
+				if level in story_manager.puzzles:
+					puzzle = story_manager.puzzles[level]
+					dialogue_box.show_dialogue(f"Solve this puzzle to proceed to the next level:")
+					pygame.display.update()
+					pygame.time.wait(1000)
+					if solve_puzzle_wordle(dialogue_box, puzzle):
+						game_timer.save_time(level)
+						level += 1
+						if level <= max_levels:
+							world_data = []
+							world = reset_level(level)
+							game_over = 0
+							score = 0
+							change_music(level)
+							show_level_banner(screen, level)
+						else:
+							dialogue_box.show_dialogue(f"Congratulations {story_manager.player_name}!\nYou've escaped Decoding Island!")
+					else:
+						game_over = 0  # Allow the player to try the level again
+				else:
+					# If there's no puzzle for this level, just proceed
+					game_timer.save_time(level)
 					level += 1
 					if level <= max_levels:
 						world_data = []
 						world = reset_level(level)
 						game_over = 0
+						score = 0
+						change_music(level)
+						show_level_banner(screen, level)
 					else:
 						dialogue_box.show_dialogue(f"Congratulations {story_manager.player_name}!\nYou've escaped Decoding Island!")
-						if restart_button.draw():
-							level = 1
-							world_data = []
-							world = reset_level(level)
-							game_over = 0
-							score = 0
-				else:
-					dialogue_box.show_dialogue("Incorrect. Try again!")
-					game_over = 0  # Allow the player to try the level again
 			else:
-				level += 1
-				if level <= max_levels:
-					world_data = []
-					world = reset_level(level)
-					game_over = 0
-				else:
-					dialogue_box.show_dialogue(f"Congratulations {story_manager.player_name}!\nYou've escaped Decoding Island!")
-					if restart_button.draw():
-						level = 1
-						world_data = []
-						world = reset_level(level)
-						game_over = 0
-						score = 0
+				# Not enough keys
+				keys_needed = KEYS_REQUIRED[level] - score
+				draw_text(f'Need {keys_needed} more keys!', font_score, white, screen_width // 2 - 100, screen_height // 2)
+				pygame.display.update()
+				pygame.time.wait(1000)
+				game_over = 0  # Allow the player to continue playing the current level
 
-						# In the main game loop, add periodic story updates:
-
-		# In the main game loop, add periodic story updates:
+	if main_menu == False:  # Only show when not in main menu
+		# Draw level indicator
+		draw_text(f'Level: {level}', font_score, white, screen_width - 550, 10)
+		# Draw key counter
 		
 
 	for event in pygame.event.get():

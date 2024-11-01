@@ -13,10 +13,10 @@ class World:
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
 
-class Coin(pygame.sprite.Sprite):
+class key(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('img/coin.png')
+        self.image = pygame.image.load('img/key.png')
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
 

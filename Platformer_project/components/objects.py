@@ -7,7 +7,7 @@ class Lava:
     def draw(self, screen):
         pygame.draw.rect(screen, (255, 100, 0), self.rect)
 
-class Coin:
+class key:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, 20, 20)
 

@@ -4,7 +4,7 @@ import pickle
 from os import path
 from settings import *
 from player import Player
-from world import World, Coin, Button
+from world import World, key, Button
 
 # Initialize Pygame
 pygame.init()
@@ -18,10 +18,10 @@ player = Player(100, SCREEN_HEIGHT - 130)
 blob_group = pygame.sprite.Group()
 platform_group = pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
+key_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
-score_coin = Coin(TILE_SIZE // 2, TILE_SIZE // 2)
-coin_group.add(score_coin)
+score_key = key(TILE_SIZE // 2, TILE_SIZE // 2)
+key_group.add(score_key)
 
 # Load level data
 if path.exists(f'level{LEVEL}_data'):
@@ -59,15 +59,15 @@ while run:
         if GAME_OVER == 0:
             blob_group.update()
             platform_group.update()
-            if pygame.sprite.spritecollide(player, coin_group, True):
+            if pygame.sprite.spritecollide(player, key_group, True):
                 SCORE += 1
-                COIN_FX.play()
+                key_FX.play()
             draw_text(f'X {SCORE}', FONT_SCORE, WHITE, TILE_SIZE - 10, 10, screen)
 
         blob_group.draw(screen)
         platform_group.draw(screen)
         lava_group.draw(screen)
-        coin_group.draw(screen)
+        key_group.draw(screen)
         exit_group.draw(screen)
 
         GAME_OVER = player.update(GAME_OVER, world)

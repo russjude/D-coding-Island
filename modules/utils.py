@@ -11,11 +11,11 @@ class World:
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
 
-def reset_level(level, player, blobs, platforms, coins, lava, exits):
+def reset_level(level, player, blobs, platforms, keys, lava, exits):
     player.reset(100, 850)
     blobs.empty()
     platforms.empty()
-    coins.empty()
+    keys.empty()
     lava.empty()
     exits.empty()
     with open(f'levels/level{level}_data', 'rb') as f:

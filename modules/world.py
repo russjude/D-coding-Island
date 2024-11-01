@@ -9,11 +9,11 @@ class World:
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])  # Ensure you have a list of tuples (image, position)
 
-def reset_level(level, player, blobs, platforms, coins, lava, exits):
+def reset_level(level, player, blobs, platforms, keys, lava, exits):
     player.reset(100, 850)
     blobs.empty()
     platforms.empty()
-    coins.empty()
+    keys.empty()
     lava.empty()
     exits.empty()
 
@@ -22,7 +22,7 @@ def reset_level(level, player, blobs, platforms, coins, lava, exits):
     return World(world_data)
 
 # In your main game loop
-world = reset_level(current_level, player, blobs, platforms, coins, lava, exits)
+world = reset_level(current_level, player, blobs, platforms, keys, lava, exits)
 
 while run:
     for event in pygame.event.get():
