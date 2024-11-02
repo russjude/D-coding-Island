@@ -5,6 +5,7 @@ import pickle
 from os import path
 import time
 from Wordle import main as wordle_game  # Import the Wordle game
+import pytmx
 
 pygame.mixer.pre_init(44100, -16, 2, 512)
 mixer.init()
@@ -31,6 +32,13 @@ main_menu = True
 level = 1
 max_levels = 7
 score = 0
+
+# In your settings.py or at the top of your main file
+TILE_SIZE = 64  # TMX file uses 64x64 tiles
+GRID_WIDTH = 36  # TMX map is 36 tiles wide
+GRID_HEIGHT = 22  # TMX map is 22 tiles high
+SCREEN_WIDTH = TILE_SIZE * GRID_WIDTH  # 36 * 64 = 2304
+SCREEN_HEIGHT = TILE_SIZE * GRID_HEIGHT  # 22 * 64 = 1408
 
 
 KEYS_REQUIRED = {
@@ -288,6 +296,31 @@ def solve_puzzle_wordle(dialogue_box, puzzle):
         dialogue_box.show_dialogue("You didn't solve the Wordle puzzle. Try the level again!")
         return False
 
+def load_tmx_level(level_number):
+    tmx_data = pytmx.load_pygame(f'LEVEL{level_number}GAME.tmx')
+    world_data = []
+    
+    # Convert TMX layers to our world data format
+    for layer in tmx_data.visible_layers:
+        if hasattr(layer, 'data'):
+            layer_data = []
+            for y in range(layer.height):
+                row = []
+                for x in range(layer.width):
+                    # Get tile GID and convert to our tile system
+                    gid = layer.data[y][x]
+                    # Convert TMX tile IDs to your game's tile system
+                    if gid == 0:  # Empty tile
+                        row.append(0)
+                    elif gid in [90, 91, 92]:  # Platform tiles
+                        row.append(1)
+                    elif gid in [96, 97]:  # Ground tiles
+                        row.append(2)
+                    # Add more tile conversions as needed
+                row.append(row)
+            world_data.append(layer_data)
+    
+    return world_data
 
 def draw_text(text, font, text_col, x, y):
 	img = font.render(text, True, text_col)
@@ -303,8 +336,22 @@ def reset(self, x, y):
 
 #function to reset level
 def reset_level(level):
-    world_data = load_tmx_level(level)
-    return World(world_data)
+	player.reset(100, screen_height - 130)
+	blob_group.empty()
+	platform_group.empty()
+	key_group.empty()
+	lava_group.empty()
+	exit_group.empty()
+
+	#load in level data and create world
+	if path.exists(f'level{level}_data'):
+		pickle_in = open(f'level{level}_data', 'rb')
+		world_data = pickle.load(pickle_in)
+	world = World(world_data)
+	#create dummy key for showing the score
+	score_key = Key(tile_size // 2, tile_size // 2)
+	key_group.add(score_key)
+	return world
 
 def eye_blink_effect(blink_count=2, blink_speed=0.5):
     original_surface = screen.copy()
@@ -676,6 +723,9 @@ class World():
 		#load images
 		dirt_block_img = pygame.image.load('img/dirt_block.png')
 		grass_block_img = pygame.image.load('img/grass_block.png')
+		self.dirt_img = pygame.image.load('img/dirt.png')
+		self.grass_img = pygame.image.load('img/grass.png')
+		self.platform_img = pygame.image.load('img/platform.png')
 
 		row_count = 0
 		for row in data:
