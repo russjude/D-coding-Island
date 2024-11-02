@@ -19,7 +19,7 @@ target_width = int(monitor_width * SCREEN_SCALE)
 target_height = int(monitor_height * SCREEN_SCALE)
 
 # Load and scale the background
-original_bg = pygame.image.load('Level0.png')
+original_bg = pygame.image.load('Level4.png')
 bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
 
 # Adjust window size to maintain aspect ratio
@@ -175,39 +175,108 @@ class Player(pygame.sprite.Sprite):
 
         return game_over
 
+def draw_grid(screen):
+    # Create a new surface for the grid
+    grid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    
+    # Set the alpha value for translucency
+    grid_surface.set_alpha(128)  # Adjust this value for more or less transparency
+
+    # Draw vertical lines
+    for x in range(0, SCREEN_WIDTH, TILE_SIZE):
+        color = (255, 0, 0) if (x // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (x, 0), (x, SCREEN_HEIGHT), 1)
+
+    # Draw horizontal lines
+    for y in range(0, SCREEN_HEIGHT, TILE_SIZE):
+        color = (255, 0, 0) if (y // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (0, y), (SCREEN_WIDTH, y), 1)
+
+    # Blit the grid surface onto the main screen
+    screen.blit(grid_surface, (0, 0))
+
 class World:
     def __init__(self):
         self.collision_tiles = []
         
         # Platform data for level 1
         platform_data = [
-            # Top platforms
-            (5.2, 13.4, 6, 2.5),    
-            (48, 13.4, 6, 2.5),   
 
-            # small-top platform
-            (13.3, 15.5, 1.4, 1.0), 
-            (44.4, 15.5, 1.6, 1.0), 
-            
-            # semi-top platform
-            (16.7, 16.6, 4.5, 1.0), 
-            (38, 16.6, 4.5, 1.0), 
+            # 7th layer
 
-            # Middle platform
-            (26.5, 18.3, 6.2, 2.5),  
+
+            # 6th layer
+
+            # 5th layer
+
+
+
+            # 4th layer
+            (33.2, 15.2, 7.8, 5.8),
+            (31.3, 16.8, 3, 1),
+
+            (6.8, 11.9, 6, 1),
+            (10.2, 5.3, 3, 2.4),
+            (15, 21.9, 1.2, 2),
+            (13, 7, 1.8, 2.3),
+
+            (19.9, 7, 1.2, 2.3),
+            (21.4, 5.2, 1.3, 11),
+            (22, 7, 2.2, 1),
+            (11.9, 5.3, 1.1, 10.8),
+            (11.9, 14.9, 10.8, 1.2),
+            (16.4, 8.5, 1.7, 1),
+            (14.9, 11.9, 5, 1),
+
+            (24.8, 11.9, 3, 1),
+            (46, 11.9, 5, 1),
+            (44.4, 16.8, 6.6, 1),
+
+            (51, 20, 10, 1),
+            (38.1, 0, 1.3, 8),
+            (38.1, 6.5, 8, 1.5),
+            (38, 3.5, 3, 1),
+
+
+
+            # 3rd layer
+            (8.5, 21.8, 1.5, 1),
+            (21.2, 21.8, 1.5, 1),
+            (16.9, 29.5, 4, 1.5),
+            (10, 23.4, 11.3, 1.3),
+            (18.5, 24.6, 1, 6.3),
+            (26.4, 20, 5, 1),
+            (28.2, 15.2, 1.2, 9),
+            (26.4, 23.4, 6.2, 1),
             
-            # Lower platforms
-            (34.6, 23.2, 4.8, 2.5),
-            (19.9, 23.2, 4.7, 2.5),
-            
-            # Bottom platforms
-            (11.8, 28, 6.2, 2.5),
-            (26.6, 28, 6.2, 2.5),
-            (41.3, 28, 8, 1.),
-            
+
+            # 2nd layer
+            (6.9, 28.3, 4.3, 1),
+            (1.7, 25, 6.3, 1),
+            (0, 20, 8, 1),
+            (0, 15.1, 5, 1),
+            (11.9, 26.7, 1.3, 6),
+            (12, 31.2, 2.4, 1.4),
+            (11.9, 26.6, 7.5, 1),
+            (23, 26.7, 5, 1),
+            (33, 26.7, 3, 1),
+            (39, 38.2, 5, 1),
+            (29.8, 30, 3, 1),
+            (56, 30, 3, 1),
+            (41, 23.4, 5, 1),
+            (52.9, 33.1, 2.9, 4),
+            (38, 28.2, 5, 1),
+            (46, 26.7, 6.7, 5.8),
+            (44.7, 31.2, 8, 1.3),
+
+
             # Ground level
-            (0, 33, 8, 3.0),
-            (51, 33, 8.2, 3.0),
+            (0, 33.3, 6.3, 6),
+            (6.7, 34.9, 3, 6),
+            (11.6, 34.9, 8.1, 6),
+            (21.6, 34.9, 1.3, 6),
+            (23, 33.2, 6.5, 0.9),
+            (34.7, 33.3, 9.5, 6)
         ]
         
         for plat in platform_data:
@@ -301,6 +370,7 @@ while run:
 
     # Draw the world (collision boxes)
     world.draw(screen)
+    draw_grid(screen)
     
     # Draw the player
     screen.blit(player.image, player.rect)

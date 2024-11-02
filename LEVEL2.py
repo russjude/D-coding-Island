@@ -19,7 +19,7 @@ target_width = int(monitor_width * SCREEN_SCALE)
 target_height = int(monitor_height * SCREEN_SCALE)
 
 # Load and scale the background
-original_bg = pygame.image.load('Level0.png')
+original_bg = pygame.image.load('Level2game!.png')
 bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
 
 # Adjust window size to maintain aspect ratio
@@ -181,33 +181,49 @@ class World:
         
         # Platform data for level 1
         platform_data = [
-            # Top platforms
-            (5.2, 13.4, 6, 2.5),    
-            (48, 13.4, 6, 2.5),   
 
-            # small-top platform
-            (13.3, 15.5, 1.4, 1.0), 
-            (44.4, 15.5, 1.6, 1.0), 
-            
-            # semi-top platform
-            (16.7, 16.6, 4.5, 1.0), 
-            (38, 16.6, 4.5, 1.0), 
+            # 7th layer
+            (23.2, 3.6, 3, 1),
+            (13.5, 2, 7.6, 4),
+            (10.1, 3.7, 3, 1),
+            (0.3, 3.7, 4.6, 1),
+            (5.2, 5.3, 1.3, 1),
 
-            # Middle platform
-            (26.5, 18.3, 6.2, 2.5),  
-            
-            # Lower platforms
-            (34.6, 23.2, 4.8, 2.5),
-            (19.9, 23.2, 4.7, 2.5),
-            
-            # Bottom platforms
-            (11.8, 28, 6.2, 2.5),
-            (26.6, 28, 6.2, 2.5),
-            (41.3, 28, 8, 1.),
-            
+            # 6th layer
+            (51.3, 10.2, 7.5, 5.7),
+            (26.4, 10.2, 4.8, 1.3),
+            (5.2, 8.6, 4.6, 1),
+
+            # 5th layer
+            (43, 11.9, 6.3, 1),
+            (11.8, 13.5, 4.6, 1),
+            (0.2, 13.5, 4.6, 1),
+
+            # 4th layer
+            (31.7, 18.1, 12.4, 1),
+            (33.3, 15.2, 9.2, 3),
+            (0, 18.4, 9.5, 2.5),
+
+            # 3rd layer
+            (47.9, 20, 4.7, 1),
+            (29.85, 20, 1.3, 1),
+            (13.4, 21.7, 6.2, 1),
+            (9.9, 20.1, 1.7, 1),
+
+            # 2nd layer
+            (48, 26.7, 6.2, 1),
+            (41.4, 23.4, 4.6, 1),
+            (26.7, 23.4, 7.6, 2.5),
+            (7, 25, 14, 2.5),
+
             # Ground level
-            (0, 33, 8, 3.0),
-            (51, 33, 8.2, 3.0),
+            (0.5, 28.4, 27, 8.0),
+            (43.2, 31.7, 27, 5.0),
+
+            # Ground Pillars
+            (39.8, 31.7, 1.2, 3),
+            (34.8, 31.7, 1.2, 3),
+            (29.9, 31.7, 1.2, 3)
         ]
         
         for plat in platform_data:

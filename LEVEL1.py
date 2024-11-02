@@ -19,7 +19,7 @@ target_width = int(monitor_width * SCREEN_SCALE)
 target_height = int(monitor_height * SCREEN_SCALE)
 
 # Load and scale the background
-original_bg = pygame.image.load('Level0.png')
+original_bg = pygame.image.load('Level1.png')
 bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
 
 # Adjust window size to maintain aspect ratio
@@ -44,6 +44,7 @@ JUMP_SPEED = -15
 MOVE_SPEED = 8
 game_over = 0
 score = 0
+win = False
 
 # Define colors
 white = (255, 255, 255)
@@ -53,6 +54,8 @@ blue = (0, 0, 255)
 sun_img = pygame.image.load('img/sun.png')
 bg_img = pygame.transform.scale(original_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
 restart_img = pygame.image.load('img/restart_btn.png')
+door_img = pygame.image.load('img/exit.png')
+door_img = pygame.transform.scale(door_img, (int(TILE_SIZE * 1.5), int(TILE_SIZE * 2)))
 
 # Load sounds
 pygame.mixer.music.load('img/music.wav')
@@ -65,6 +68,14 @@ game_over_fx.set_volume(0.5)
 class CollisionTile:
     def __init__(self, x, y, width, height):
         self.rect = pygame.Rect(x, y, width, height)
+
+class Door(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = door_img
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -95,12 +106,12 @@ class Player(pygame.sprite.Sprite):
         self.direction = 1
         self.in_air = True
 
-    def update(self, game_over):
+    def update(self, game_over, win, door):
         dx = 0
         dy = 0
         walk_cooldown = 5
 
-        if game_over == 0:
+        if game_over == 0 and not win:
             key = pygame.key.get_pressed()
             
             # Jump only if we're on the ground (not in_air) and haven't jumped yet
@@ -153,6 +164,10 @@ class Player(pygame.sprite.Sprite):
             # Check for collision
             dx, dy = world.check_collision(self, dx, dy)
 
+            # Check for collision with the door
+            if self.rect.colliderect(door.rect):
+                win = True
+
             # Update player position
             self.rect.x += dx
             self.rect.y += dy
@@ -173,7 +188,7 @@ class Player(pygame.sprite.Sprite):
             if self.rect.y > 200:
                 self.rect.y -= 5
 
-        return game_over
+        return game_over, win
 
 class World:
     def __init__(self):
@@ -181,33 +196,37 @@ class World:
         
         # Platform data for level 1
         platform_data = [
-            # Top platforms
-            (5.2, 13.4, 6, 2.5),    
-            (48, 13.4, 6, 2.5),   
+            # 5th layer
+            (23.1, 8.4, 4.8, 1.4),
+            (44.5, 8.4, 4.8, 1.4),
+            (15, 5.1, 6.2, 3),
+            (0, 6.8, 9.8, 1.3),
 
-            # small-top platform
-            (13.3, 15.5, 1.4, 1.0), 
-            (44.4, 15.5, 1.6, 1.0), 
-            
-            # semi-top platform
-            (16.7, 16.6, 4.5, 1.0), 
-            (38, 16.6, 4.5, 1.0), 
+            # 4th layer
+            (28.1, 11.7, 6.4, 3),
+            (51.2, 11.7, 6.3, 3),
 
-            # Middle platform
-            (26.5, 18.3, 6.2, 2.5),  
-            
-            # Lower platforms
-            (34.6, 23.2, 4.8, 2.5),
-            (19.9, 23.2, 4.7, 2.5),
-            
-            # Bottom platforms
-            (11.8, 28, 6.2, 2.5),
-            (26.6, 28, 6.2, 2.5),
-            (41.3, 28, 8, 1.),
-            
+            # 3rd layer
+            (24.8, 15.5, 1.4, 1.7),
+            (36.3, 16.6, 4.8, 1.3),
+            (44.5, 16.6, 4.8, 1.3),
+
+            # 2nd layer
+            (51.1, 21.5, 6.4, 3),
+            (36.3, 23.2, 6.4, 1),
+            (18.3, 19.9, 9.6, 3),
+            (31.3, 19.9, 3.3, 1.4),
+
             # Ground level
-            (0, 33, 8, 3.0),
-            (51, 33, 8.2, 3.0),
+            (44.6, 26.4, 6.4, 3),
+            (33, 29.7, 9.7, 3),
+            (16.6, 28.1, 4.8, 1.4),
+            (16.6, 34.7, 16, 12),
+
+            # Ground Pillars
+            (11.7, 23.2, 3.1, 12),
+            (6.7, 26.4, 3.1, 9),
+            (1.7, 29.8, 3.1, 6)
         ]
         
         for plat in platform_data:
@@ -277,6 +296,7 @@ def draw_text(text, font, text_col, x, y):
 # Initialize game objects
 world = World()
 player = Player(100, SCREEN_HEIGHT - 130)
+door = Door(SCREEN_WIDTH - 100, SCREEN_HEIGHT - 200)
 restart_button = Button(SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 + 100, restart_img)
 
 # Game loop
@@ -289,8 +309,8 @@ while run:
 
     screen.blit(bg_img, (0, 0))
 
-    if game_over == 0:
-        game_over = player.update(game_over)
+    if game_over == 0 and not win:
+        game_over, win = player.update(game_over, win, door)
     elif game_over == -1:
         draw_text('GAME OVER!', pygame.font.SysFont('Bauhaus 93', 70), blue, 
                  (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
@@ -298,12 +318,24 @@ while run:
             player.rect.x = 100
             player.rect.y = SCREEN_HEIGHT - 130
             game_over = 0
+            win = False
+    elif win:
+        draw_text('You Win!', pygame.font.SysFont('Bauhaus 93', 70), blue, 
+                 (SCREEN_WIDTH // 2) - 150, SCREEN_HEIGHT // 2)
+        if restart_button.draw():
+            player.rect.x = 100
+            player.rect.y = SCREEN_HEIGHT - 130
+            game_over = 0
+            win = False
 
     # Draw the world (collision boxes)
     world.draw(screen)
     
     # Draw the player
     screen.blit(player.image, player.rect)
+    
+    # Draw the door
+    screen.blit(door.image, door.rect)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:

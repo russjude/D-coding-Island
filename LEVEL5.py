@@ -19,7 +19,7 @@ target_width = int(monitor_width * SCREEN_SCALE)
 target_height = int(monitor_height * SCREEN_SCALE)
 
 # Load and scale the background
-original_bg = pygame.image.load('Level0.png')
+original_bg = pygame.image.load('Level5.png')
 bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
 
 # Adjust window size to maintain aspect ratio
@@ -175,39 +175,87 @@ class Player(pygame.sprite.Sprite):
 
         return game_over
 
+def draw_grid(screen):
+    # Create a new surface for the grid
+    grid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    
+    # Set the alpha value for translucency
+    grid_surface.set_alpha(128)  # Adjust this value for more or less transparency
+
+    # Draw vertical lines
+    for x in range(0, SCREEN_WIDTH, TILE_SIZE):
+        color = (255, 0, 0) if (x // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (x, 0), (x, SCREEN_HEIGHT), 1)
+
+    # Draw horizontal lines
+    for y in range(0, SCREEN_HEIGHT, TILE_SIZE):
+        color = (255, 0, 0) if (y // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (0, y), (SCREEN_WIDTH, y), 1)
+
+    # Blit the grid surface onto the main screen
+    screen.blit(grid_surface, (0, 0))
+
 class World:
     def __init__(self):
         self.collision_tiles = []
         
         # Platform data for level 1
         platform_data = [
-            # Top platforms
-            (5.2, 13.4, 6, 2.5),    
-            (48, 13.4, 6, 2.5),   
 
-            # small-top platform
-            (13.3, 15.5, 1.4, 1.0), 
-            (44.4, 15.5, 1.6, 1.0), 
-            
-            # semi-top platform
-            (16.7, 16.6, 4.5, 1.0), 
-            (38, 16.6, 4.5, 1.0), 
+            (0, 5.2, 9.5, 1),
+            (0, 13.5, 11.4, 1),
+            (0.2, 23.4, 1.1, 14),
+            (3.5, 26.7, 1.4, 11),
 
-            # Middle platform
-            (26.5, 18.3, 6.2, 2.5),  
-            
-            # Lower platforms
-            (34.6, 23.2, 4.8, 2.5),
-            (19.9, 23.2, 4.7, 2.5),
-            
-            # Bottom platforms
-            (11.8, 28, 6.2, 2.5),
-            (26.6, 28, 6.2, 2.5),
-            (41.3, 28, 8, 1.),
-            
-            # Ground level
-            (0, 33, 8, 3.0),
-            (51, 33, 8.2, 3.0),
+            (6.8, 30, 3, 1),
+            (6.7, 23.4, 3, 1),
+            (10, 18.5, 4.6, 1),
+            (10, 26.7, 24.5, 1.5),
+            (36.3, 26.7, 9.8, 1.5),
+
+            (15, 13.5, 3, 1), 
+            (18, 8.5, 5, 1),
+            (49.3, 30, 3.3, 1.1), 
+            (46, 23.3, 6.5, 1),
+            (44.4, 18.5, 4.8, 1),
+
+            (16.5, 20, 8.3, 1.3),
+            (26.4, 20, 16.5, 1.3),
+            (41.2, 13.5, 3.2, 1),
+            (29.7, 7, 6.5, 1.1),
+            (22.9, 7, 5, 1.2),
+
+            (19.8, 13.5, 11.4, 1.3),
+            (33, 13.5, 6.4, 1.3),
+            (36.4, 8.5, 4.5, 1.2),
+            (42.9, 5.3, 6.5, 1),
+            (51, 15, 8, 1),
+
+            (15.1, 28, 1, 6),
+            (43.1, 28, 1, 6),
+            (21.7, 14, 1.2, 6),
+            (36.5, 14, 1.2, 6),
+            (18.4, 21, 1, 7), 
+            (39.9, 21, 1, 7),
+            (25, 8, 1, 7),
+            (33.3, 8, 1, 6),
+
+            (54.5, 26.8, 1.2, 11),
+            (57.9, 23.4, 1.2, 14),
+            (51.3, 3.2, 1.5, 6.3),
+            (51.3, 8.3, 8, 1.3),
+            (57.6, 3.3, 1.5, 6),
+            (54, 5, 2, 1.3),
+
+            (28.2, 12, 1.2, 2.5), 
+            (31.5, 18.5, 1.3, 2.5),
+            (25, 25, 1, 3),
+            (34.9, 31.7, 1, 3),
+            (16.5, 31.5, 3, 1),
+
+
+
+            (9.9, 33.2, 39.4, 1.3)
         ]
         
         for plat in platform_data:
@@ -299,8 +347,7 @@ while run:
             player.rect.y = SCREEN_HEIGHT - 130
             game_over = 0
 
-    # Draw the world (collision boxes)
-    world.draw(screen)
+
     
     # Draw the player
     screen.blit(player.image, player.rect)
