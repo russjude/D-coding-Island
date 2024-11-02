@@ -303,22 +303,8 @@ def reset(self, x, y):
 
 #function to reset level
 def reset_level(level):
-	player.reset(100, screen_height - 130)
-	blob_group.empty()
-	platform_group.empty()
-	key_group.empty()
-	lava_group.empty()
-	exit_group.empty()
-
-	#load in level data and create world
-	if path.exists(f'level{level}_data'):
-		pickle_in = open(f'level{level}_data', 'rb')
-		world_data = pickle.load(pickle_in)
-	world = World(world_data)
-	#create dummy key for showing the score
-	score_key = Key(tile_size // 2, tile_size // 2)
-	key_group.add(score_key)
-	return world
+    world_data = load_tmx_level(level)
+    return World(world_data)
 
 def eye_blink_effect(blink_count=2, blink_speed=0.5):
     original_surface = screen.copy()
