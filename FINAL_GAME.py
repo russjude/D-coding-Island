@@ -77,6 +77,34 @@ jump_fx.set_volume(0.5)
 game_over_fx = pygame.mixer.Sound('img/game_over.wav')
 game_over_fx.set_volume(0.5)
 
+# Add new constant for blue platforms
+LEVEL_BLUE_DATA = {
+    1: [
+
+    ],
+    2: [
+        (23.2, 3.6, 3, 1.1),
+        (26.4, 10.2, 4.8, 1.4),
+    ],
+    3: [
+        (19.9, 1.9, 3, 1.4),
+        (47.7, 13.5, 3.2, 1.3),
+        (19.5, 35, 3.7, 6),
+        (44.2, 35, 2.2, 6),
+    ],
+    4: [
+        (10, 23.4, 11.3, 1.3),
+        (18.5, 23.4, 1, 7.6),
+    ],
+    5: [
+        (26.2, 13.5, 1.7, 1.3),
+        (26.4, 20, 4.8, 1.3),
+        (19.6, 26.7, 5.3, 1.5),
+        (41, 26.7, 5, 1.5),
+        (31.1, 26.7, 3.3, 1.5),
+    ]
+}
+
 # Level platform data (you'll need to adjust these coordinates based on your level designs)
 LEVEL_PLATFORM_DATA = {
     1: [
@@ -114,7 +142,6 @@ LEVEL_PLATFORM_DATA = {
     ],
     2: [
             # 7th layer
-            (23.2, 3.6, 3, 1),
             (13.5, 2, 7.6, 4),
             (10.1, 3.7, 3, 1),
             (0.3, 3.7, 4.6, 1),
@@ -122,7 +149,6 @@ LEVEL_PLATFORM_DATA = {
 
             # 6th layer
             (51.3, 10.2, 7.5, 5.7),
-            (26.4, 10.2, 4.8, 1.3),
             (5.2, 8.6, 4.6, 1),
 
             # 5th layer
@@ -167,7 +193,6 @@ LEVEL_PLATFORM_DATA = {
             (57.8, 0.4, 1.3, 9),
             (29.9, 3.7, 9.5, 1),
             (48, 3.7, 4.6, 1),
-            (19.9, 1.9, 3, 1.4),
             
 
             # 5th layer
@@ -194,7 +219,6 @@ LEVEL_PLATFORM_DATA = {
             (1.7, 13.6, 1.6, 1),
             (37.9, 11.9, 1.6, 1),
             (43, 10.3, 1.2, 2.7),
-            (47.7, 13.5, 3.2, 1.3),
             (16.7, 13.5, 1.3, 1.3),
             
 
@@ -211,7 +235,9 @@ LEVEL_PLATFORM_DATA = {
 
 
             # Ground level
-            (0.3, 35, 58.8, 6)
+            (0.3, 35, 19, 6),
+            (23.4, 35, 20.6, 6),
+            (46.6, 35, 12.6, 6)
     ],
     4: [
             # 4th layer
@@ -235,10 +261,10 @@ LEVEL_PLATFORM_DATA = {
             (46, 11.9, 5, 1),
             (44.4, 16.8, 6.6, 1),
 
-            (51, 20, 10, 1),
+            (51, 20, 8, 1),
             (38.1, 0, 1.3, 8),
             (39.3, 6.8, 6.3, 1.2),
-            (38, 3.5, 3, 1),
+            (39.3, 3.5, 1.7, 1),
 
 
 
@@ -247,8 +273,6 @@ LEVEL_PLATFORM_DATA = {
             (21.2, 21.8, 1.5, 1),
             (16.9, 29.5, 1.6, 1.5),
             (19.4, 29.5, 1.6, 1.5),
-            (10, 23.4, 11.3, 1.3),
-            (18.5, 23.4, 1, 7.6),
             (26.4, 20, 1.8, 1),
             (29.4, 20, 1.8, 1),
             (28.2, 15.2, 1.2, 9.3),
@@ -295,10 +319,8 @@ LEVEL_PLATFORM_DATA = {
             (6.7, 23.4, 3, 1),
             (10, 18.5, 4.6, 1),
             (10, 26.7, 8.2, 1.5),
-            (26.3, 26.7, 8.2, 1.5),
-            (19.6, 26.7, 5.3, 1.5),
-            (36.1, 26.7, 3.7, 1.5),
-            (41, 26.7, 5, 1.5),
+            (26.3, 26.7, 5.3, 1.5),
+            (36.1, 26.7, 3.7, 1.5), 
 
             (15, 13.5, 3, 1), 
             (18, 8.5, 5, 1),
@@ -308,7 +330,6 @@ LEVEL_PLATFORM_DATA = {
 
             (16.5, 20, 5, 1.3),
             (23, 20, 1.7, 1.3),
-            (26.4, 20, 4.8, 1.3),
             (33, 20, 3.3, 1.3),
             (38, 20, 4.7, 1.3),
             (41.2, 13.5, 3.2, 1),
@@ -316,7 +337,6 @@ LEVEL_PLATFORM_DATA = {
             (22.9, 7, 5, 1.2),
 
             (19.8, 13.5, 5, 1.3),
-            (26.2, 13.5, 1.7, 1.3),
             (29.6, 13.5, 1.7, 1.3),
             (34.4, 13.5, 5.2, 1.3),
             (36.4, 8.5, 4.5, 1.2),
@@ -343,13 +363,12 @@ LEVEL_PLATFORM_DATA = {
             (31.5, 18.5, 1.3, 2.5),
             (25, 25, 1, 3),
             (34.9, 31.7, 1, 3),
-            (16.5, 31.5, 3, 1),
-
-
+            (17.7, 31.5, 1.8, 1),
 
             (9.9, 33.2, 5, 1.3),
-            (19.4, 33.2, 19, 1.3),
-            (36, 33.2, 7, 1.3),
+            (19.4, 33.2, 7.3, 1.3),
+            (29.4, 33.2, 5.4, 1.3),
+            (36, 33.2, 5.5, 1.3),
             (44, 33.2, 5.3, 1.3)
     ]
 }
@@ -506,42 +525,53 @@ LEVEL_DIALOGUES = {
 
 LEVEL_DEADLY_DATA = {
     1: [
-        (0, 2, 2, 2)
+        
     ],
     2: [
-        (0, 2, 2, 2)
+        (23.2, 3.6, 3, 1),
+        (26.4, 10.2, 4.8, 1.3),
+        (28, 34, 15, 1)
     ],
     3: [
-        (0, 2, 2, 2)
+        (19.9, 1.9, 3, 1.4),
+        (47.7, 13.5, 3.2, 1.3),
+        (19.5, 35, 3.7, 6),
+        (44.2, 35, 2.2, 6),
     ],
     4: [
-        (0, 2, 2, 2)
+        (10, 22.4, 11.3, 1.3),
+        (22, 13.8, 2, 2),
+        (20, 22.4, 2.4, 2),
     ],
     5: [
-        (0, 2, 2, 2)
+        (0.2, 34, 59, 4),
+        (15.4, 28, 2.2, 3),
+        (22, 25.4, 2, 2),
+        (25, 12, 2.4, 2.7),
+        (28.4, 18.7, 2.4, 2.3),
+        (31.8, 25.2,  2.3, 2),
+        (26.9, 32, 2, 2),
+        (40.2, 25.3, 2, 2),
+        (41.7, 30.3, 2, 2),
     ]
 }
 
 # Update LEVEL_ENEMY_DATA to include boundary information:
 LEVEL_ENEMY_DATA = {
     1: [
-        (12, 32, "horizontal", 12, 20)  # x, y, direction, boundary_start, boundary_end
+        (17, 33.4, "horizontal", 17, 32)  # x, y, direction, boundary_start, boundary_end
     ],
     2: [
-        (5, 10, "horizontal", 3, 8),
-        (8, 15, "vertical", 13, 18)
+
     ],
     3: [
-        (5, 10, "horizontal", 3, 8),
-        (8, 15, "vertical", 13, 18)
+
     ],
     4: [
-        (5, 10, "horizontal", 3, 8),
-        (8, 15, "vertical", 13, 18)
+
     ],
     5: [
-        (5, 10, "horizontal", 3, 8),
-        (8, 15, "vertical", 13, 18)
+
     ]
 }
 
@@ -789,16 +819,16 @@ class World:
     def __init__(self, level_data, deadly_data):
         self.collision_tiles = []
         self.deadly_tiles = []
+        self.blue_tiles = []  # Initialize blue_tiles list
 
+        # Create collision tiles
         for plat in level_data:
-            # Adjust coordinates to align with background
             x = plat[0] * TILE_SIZE
             y = plat[1] * TILE_SIZE
             width = plat[2] * TILE_SIZE
             height = int(plat[3] * TILE_SIZE)
             
-            # Add a small offset for better visual alignment if needed
-            offset_x = 0  # Adjust these values if needed
+            offset_x = 0
             offset_y = 0
             
             collision_rect = pygame.Rect(
@@ -809,6 +839,7 @@ class World:
             )
             self.collision_tiles.append(CollisionTile(x + offset_x, y + offset_y, width, height))
 
+        # Create deadly tiles
         for deadly in deadly_data:
             x = deadly[0] * TILE_SIZE
             y = deadly[1] * TILE_SIZE
@@ -816,9 +847,33 @@ class World:
             height = int(deadly[3] * TILE_SIZE)
             
             self.deadly_tiles.append(CollisionTile(x, y, width, height))
-            
-    def check_collision(self, player, dx, dy):
+
+        # Create blue tiles
+        if current_level in LEVEL_BLUE_DATA:
+            for blue in LEVEL_BLUE_DATA[current_level]:
+                x = blue[0] * TILE_SIZE
+                y = blue[1] * TILE_SIZE
+                width = blue[2] * TILE_SIZE
+                height = int(blue[3] * TILE_SIZE)
+                
+                self.blue_tiles.append(CollisionTile(x, y, width, height))
+
+    def draw(self, screen):
+        # Draw regular collision tiles in red
         for tile in self.collision_tiles:
+            pygame.draw.rect(screen, (255, 0, 0), tile.rect, 1)
+        
+        # Draw deadly tiles in green
+        for tile in self.deadly_tiles:
+            pygame.draw.rect(screen, (0, 255, 0), tile.rect, 2)
+        
+        # Draw blue tiles in blue
+        for tile in self.blue_tiles:
+            pygame.draw.rect(screen, (0, 0, 255), tile.rect, 1)
+
+    def check_collision(self, player, dx, dy):
+        # Check collision with both regular and blue tiles
+        for tile in self.collision_tiles + self.blue_tiles:
             if tile.rect.colliderect(player.rect.x + dx, player.rect.y, player.width, player.height):
                 dx = 0
             if tile.rect.colliderect(player.rect.x, player.rect.y + dy, player.width, player.height):
@@ -829,20 +884,18 @@ class World:
                     dy = tile.rect.top - player.rect.bottom
                     player.vel_y = 0
                     player.in_air = False
+                    
+        # Check deadly collisions
         for tile in self.deadly_tiles:
             if tile.rect.colliderect(player.rect):
                 return "deadly"
+                
         return dx, dy
 
-    def draw(self, screen):
-        for tile in self.collision_tiles:
-            pygame.draw.rect(screen, (255, 0, 0), tile.rect, 1)
-        for tile in self.deadly_tiles:
-            pygame.draw.rect(screen, (0, 255, 0), tile.rect, 2)  # Changed to outline
-
 def init_level(level_num):
-    global keys_collected, game_start_time
+    global keys_collected, game_start_time, current_level
     keys_collected = 0
+    current_level = level_num  # Update current_level before creating World instance
     
     if game_start_time is None:
         game_start_time = time.time()
@@ -865,8 +918,8 @@ def init_level(level_num):
     platform_width = suitable_platform[2]
     
     # Place door near the right edge of the platform
-    door_x = (platform_x + platform_width - 2) * TILE_SIZE  # Leave some space from the edge
-    door_y = (platform_y - 2) * TILE_SIZE  # Place door above platform
+    door_x = (platform_x + platform_width - 2) * TILE_SIZE
+    door_y = (platform_y - 2) * TILE_SIZE
     
     # Ensure door isn't too close to screen edge
     if door_x > SCREEN_WIDTH - 3 * TILE_SIZE:
@@ -878,13 +931,35 @@ def init_level(level_num):
     deadly_tiles = LEVEL_DEADLY_DATA[level_num]
     world = World(platforms, deadly_tiles)
     
+    # Find safe spawn position
+    spawn_x = 100  # Default x position
+    spawn_y = 0    # Will be set based on platform
+    
+    # Find the leftmost ground platform
+    ground_platforms = []
+    for plat in platforms:
+        # Look for platforms in the lower third of the screen
+        if plat[1] > (SCREEN_HEIGHT / TILE_SIZE) * 0.7:  # 70% down the screen
+            ground_platforms.append(plat)
+    
+    if ground_platforms:
+        # Sort by x position to find leftmost platform
+        leftmost = sorted(ground_platforms, key=lambda p: p[0])[0]
+        # Place player on top of the platform
+        spawn_x = (leftmost[0] + 1) * TILE_SIZE  # Offset by 1 tile from the left edge
+        spawn_y = leftmost[1] * TILE_SIZE - TILE_SIZE * 2  # Place above the platform
+    
+    # Create player at safe position
+    player = Player(spawn_x, spawn_y)
+    
     moving_enemies.empty()
     for enemy_data in LEVEL_ENEMY_DATA[level_num]:
         x, y, direction, boundary_start, boundary_end = enemy_data
         enemy = MovingEnemy(x, y, direction, boundary_start, boundary_end)
         moving_enemies.add(enemy)
     
-    return keys_group, door, npc, world, moving_enemies
+    return keys_group, door, npc, world, moving_enemies, player  # Return player as well
+
 
 class MovingEnemy(pygame.sprite.Sprite):
     def __init__(self, x, y, direction, boundary_start, boundary_end):
@@ -895,9 +970,55 @@ class MovingEnemy(pygame.sprite.Sprite):
         self.rect.y = y * TILE_SIZE
         self.direction = direction
         self.speed = 2
+        self.moving_right = True
+        self.moving_down = True
         self.boundary_start = boundary_start * TILE_SIZE
         self.boundary_end = boundary_end * TILE_SIZE
         self.initial_pos = self.rect.x if direction == "horizontal" else self.rect.y
+
+    def update(self):
+        if self.direction == "horizontal":
+            if self.moving_right:
+                self.rect.x += self.speed
+                if self.rect.x >= self.boundary_end:
+                    self.moving_right = False
+                    self.image = pygame.transform.flip(self.image, True, False)
+            else:
+                self.rect.x -= self.speed
+                if self.rect.x <= self.boundary_start:
+                    self.moving_right = True
+                    self.image = pygame.transform.flip(self.image, True, False)
+        else:  # vertical movement
+            if self.moving_down:
+                self.rect.y += self.speed
+                if self.rect.y >= self.boundary_end:
+                    self.moving_down = False
+            else:
+                self.rect.y -= self.speed
+                if self.rect.y <= self.boundary_start:
+                    self.moving_down = True
+
+    def draw_boundaries(self, screen):
+        # Draw movement boundaries (for debugging)
+        if self.direction == "horizontal":
+            pygame.draw.line(screen, (255, 0, 0),
+                           (self.boundary_start, self.rect.centery),
+                           (self.boundary_end, self.rect.centery), 2)
+        else:
+            pygame.draw.line(screen, (255, 0, 0),
+                           (self.rect.centerx, self.boundary_start),
+                           (self.rect.centerx, self.boundary_end), 2)
+
+    def check_collision(self, player):
+        # Create a slightly smaller collision rect for more forgiving collisions
+        collision_margin = 4
+        collision_rect = pygame.Rect(
+            self.rect.x + collision_margin,
+            self.rect.y + collision_margin,
+            self.rect.width - (collision_margin * 2),
+            self.rect.height - (collision_margin * 2)
+        )
+        return collision_rect.colliderect(player.rect)
     
     def draw_boundaries(self, screen):
         if self.direction == "horizontal":
@@ -1019,6 +1140,7 @@ def generate_key_positions(level):
     positions = []
     required_keys = LEVEL_REQUIREMENTS[level]
     platforms = LEVEL_PLATFORM_DATA[level]
+    deadly_tiles = LEVEL_DEADLY_DATA[level]
     
     # Get viable platform positions (excluding ground platforms)
     viable_platforms = []
@@ -1028,30 +1150,63 @@ def generate_key_positions(level):
         y = plat[1] * TILE_SIZE
         width = plat[2] * TILE_SIZE
         
-        # Skip platforms that are too low or too high
-        if y < SCREEN_HEIGHT * 0.8 and y > SCREEN_HEIGHT * 0.1 and x > 0 and x < SCREEN_WIDTH:
+        # Skip very low platforms (ground level)
+        if y < SCREEN_HEIGHT * 0.8:  # Only use platforms in upper 80% of screen
             viable_platforms.append((x, y, width))
     
-    # Ensure we have enough platforms
-    if len(viable_platforms) < required_keys:
-        # Add some lower platforms if needed
-        for plat in platforms:
-            x = plat[0] * TILE_SIZE
-            y = plat[1] * TILE_SIZE
-            width = plat[2] * TILE_SIZE
-            if (x, y, width) not in viable_platforms:
-                viable_platforms.append((x, y, width))
+    # Function to check if position is safe from deadly tiles
+    def is_safe_position(x, y):
+        SAFE_DISTANCE = TILE_SIZE * 3  # Minimum distance from deadly tiles
+        
+        for deadly in deadly_tiles:
+            deadly_x = deadly[0] * TILE_SIZE
+            deadly_y = deadly[1] * TILE_SIZE
+            deadly_width = deadly[2] * TILE_SIZE
+            deadly_height = deadly[3] * TILE_SIZE
+            
+            # Calculate boundaries of the deadly area with safety margin
+            deadly_left = deadly_x - SAFE_DISTANCE
+            deadly_right = deadly_x + deadly_width + SAFE_DISTANCE
+            deadly_top = deadly_y - SAFE_DISTANCE
+            deadly_bottom = deadly_y + deadly_height + SAFE_DISTANCE
+            
+            # Check if key position is within the danger zone
+            if (deadly_left < x < deadly_right and 
+                deadly_top < y < deadly_bottom):
+                return False
+        return True
     
     # Randomly select platforms and place keys on them
     import random
     random.shuffle(viable_platforms)
+    attempts = 0
+    max_attempts = 100  # Prevent infinite loop
     
-    for i in range(min(required_keys, len(viable_platforms))):
-        plat = viable_platforms[i]
-        # Place key somewhere along the platform
-        key_x = plat[0] + random.uniform(TILE_SIZE, plat[2] - TILE_SIZE * 2)  # Leave space at edges
-        key_y = plat[1] - TILE_SIZE * 1.5  # Place key above platform
-        positions.append((key_x, key_y))
+    while len(positions) < required_keys and attempts < max_attempts:
+        for plat in viable_platforms:
+            if len(positions) >= required_keys:
+                break
+                
+            # Try multiple positions on each platform
+            for _ in range(5):  # Try 5 times per platform
+                # Place key somewhere along the platform
+                key_x = plat[0] + random.uniform(TILE_SIZE, plat[2] - TILE_SIZE * 2)
+                key_y = plat[1] - TILE_SIZE * 1.5
+                
+                # Only add position if it's safe
+                if is_safe_position(key_x, key_y):
+                    positions.append((key_x, key_y))
+                    break
+            
+            attempts += 1
+    
+    # If we couldn't find enough safe positions, fill remaining with positions farther from platforms
+    while len(positions) < required_keys:
+        plat = random.choice(viable_platforms)
+        key_x = plat[0] + random.uniform(TILE_SIZE * 2, plat[2] - TILE_SIZE * 2)
+        key_y = plat[1] - TILE_SIZE * 2  # Place keys higher above platform
+        if is_safe_position(key_x, key_y):
+            positions.append((key_x, key_y))
     
     return positions
 
@@ -1126,13 +1281,11 @@ while running:
         if show_dialogue(STORYLINE["intro"]):
             current_state = "playing"
             current_level = 1
-            keys_group, door, npc, world, moving_enemies = init_level(current_level)
-            player = Player(100, SCREEN_HEIGHT - 130)
+            keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
         else:
             current_state = "playing"
             current_level = 1
-            keys_group, door, npc, world, moving_enemies = init_level(current_level)
-            player = Player(100, SCREEN_HEIGHT - 130)
+            keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
     
     elif current_state == "playing":
         screen.blit(level_backgrounds[current_level], (0, 0))
@@ -1170,7 +1323,6 @@ while running:
             game_over_fx.play()
         
         # Update and draw game objects
-        game_over = player.update(game_over, world, keys_group)
         world.draw(screen)
         keys_group.draw(screen)
         
@@ -1183,15 +1335,35 @@ while running:
         screen.blit(player.image, player.rect)
         screen.blit(door.image, door.rect)
         screen.blit(npc.image, npc.rect)
+
+                # Update and draw game objects
+        game_over = player.update(game_over, world, keys_group)
+        
+        # Check enemy collisions
+        for enemy in moving_enemies:
+            enemy.update()
+            if enemy.check_collision(player):
+                game_over = -1
+                game_over_fx.play()
+                break
+        
+        world.draw(screen)
+        keys_group.draw(screen)
+        
+        # Draw enemies
+        moving_enemies.draw(screen)
+        
+        # Draw boundary lines (optional - for debugging)
+        for enemy in moving_enemies:
+            enemy.draw_boundaries(screen)
         
         if game_over == -1:
             draw_text('GAME OVER!', 70, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
             if restart_button.draw(screen):
                 game_over = 0
-                player.rect.x = 100
-                player.rect.y = SCREEN_HEIGHT - 130
                 keys_collected = 0
-                keys_group, door, npc, world, moving_enemies = init_level(current_level)
+                keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
+
         
         elif keys_collected >= LEVEL_REQUIREMENTS[current_level] and pygame.sprite.collide_rect(player, door):
             # Show completion dialogue
@@ -1199,18 +1371,15 @@ while running:
                             "You've found all the keys!", 
                             "Press SPACE to continue..."]):
                 if current_level < 5:
-                    # Advance to next level
                     current_level += 1
-                    # Reset dialogue states for new level
                     storyline_key = f'storyline_{current_level}'
                     level_key = f'level_{current_level}'
                     dialogue_states[storyline_key] = False
                     dialogue_states[level_key] = False
-                    if game_start_time:  # Only append time if game has started
+                    if game_start_time:
                         elapsed_time = int(time.time() - game_start_time)
                         level_times.append(elapsed_time)
-                    # Initialize next level
-                    keys_group, door, npc, world, moving_enemies = init_level(current_level)
+                    keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
                     player.rect.x = 100
                     player.rect.y = SCREEN_HEIGHT - 130
                 else:
