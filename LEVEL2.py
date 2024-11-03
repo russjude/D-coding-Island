@@ -175,6 +175,26 @@ class Player(pygame.sprite.Sprite):
 
         return game_over
 
+def draw_grid(screen):
+    # Create a new surface for the grid
+    grid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    
+    # Set the alpha value for translucency
+    grid_surface.set_alpha(128)  # Adjust this value for more or less transparency
+
+    # Draw vertical lines
+    for x in range(0, SCREEN_WIDTH, TILE_SIZE):
+        color = (255, 0, 0) if (x // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (x, 0), (x, SCREEN_HEIGHT), 1)
+
+    # Draw horizontal lines
+    for y in range(0, SCREEN_HEIGHT, TILE_SIZE):
+        color = (255, 0, 0) if (y // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (0, y), (SCREEN_WIDTH, y), 1)
+
+    # Blit the grid surface onto the main screen
+    screen.blit(grid_surface, (0, 0))
+
 class World:
     def __init__(self):
         self.collision_tiles = []
@@ -200,8 +220,9 @@ class World:
             (0.2, 13.5, 4.6, 1),
 
             # 4th layer
-            (31.7, 18.1, 12.4, 1),
-            (33.3, 15.2, 9.2, 3),
+            (31.7, 18.1, 1.8, 1.3),
+            (42.3, 18.1, 1.8, 1.3),
+            (33.3, 15.2, 9.2, 4),
             (0, 18.4, 9.5, 2.5),
 
             # 3rd layer
@@ -214,10 +235,11 @@ class World:
             (48, 26.7, 6.2, 1),
             (41.4, 23.4, 4.6, 1),
             (26.7, 23.4, 7.6, 2.5),
-            (7, 25, 14, 2.5),
+            (7, 25, 14, 5),
 
             # Ground level
-            (0.5, 28.4, 27, 8.0),
+            (0.5, 28.4, 6.6, 8.0),
+            (21, 28.4, 6.7, 8.0),
             (43.2, 31.7, 27, 5.0),
 
             # Ground Pillars
@@ -317,6 +339,7 @@ while run:
 
     # Draw the world (collision boxes)
     world.draw(screen)
+    draw_grid(screen)
     
     # Draw the player
     screen.blit(player.image, player.rect)

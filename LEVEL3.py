@@ -175,6 +175,26 @@ class Player(pygame.sprite.Sprite):
 
         return game_over
 
+def draw_grid(screen):
+    # Create a new surface for the grid
+    grid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    
+    # Set the alpha value for translucency
+    grid_surface.set_alpha(128)  # Adjust this value for more or less transparency
+
+    # Draw vertical lines
+    for x in range(0, SCREEN_WIDTH, TILE_SIZE):
+        color = (255, 0, 0) if (x // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (x, 0), (x, SCREEN_HEIGHT), 1)
+
+    # Draw horizontal lines
+    for y in range(0, SCREEN_HEIGHT, TILE_SIZE):
+        color = (255, 0, 0) if (y // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (0, y), (SCREEN_WIDTH, y), 1)
+
+    # Blit the grid surface onto the main screen
+    screen.blit(grid_surface, (0, 0))
+
 class World:
     def __init__(self):
         self.collision_tiles = []
@@ -189,7 +209,7 @@ class World:
             (3.5, 7, 6.2, 1),
             (0.3, 2, 4.3, 2.5),
             (20, 8.5, 3, 1),
-            (46.4, 8.5, 12, 1),
+            (46.4, 8.5, 11.4, 1),
             (57.8, 0.4, 1.3, 9),
             (29.9, 3.7, 9.5, 1),
             (48, 3.7, 4.6, 1),
@@ -197,24 +217,24 @@ class World:
             
 
             # 5th layer
-            (25, 11.5, 4.3, 1.3),
-            (25, 8.6, 1.4, 3),
+            (26.4, 11.5, 2.8, 1.3),
+            (25, 8.6, 1.4, 4.3),
             (11.5, 10.2, 5, 1),
 
 
             # 4th layer
-            (18.1, 10.3, 1.7, 5),
-            (7.1, 14.8, 12.7, 1.3),
+            (18.1, 10.3, 1.7, 5.8),
+            (7.1, 14.8, 10.9, 1.3),
             (31.5, 13.6, 3, 0.8),
             (36.5, 16.8, 7.8, 0.8),
 
             # 3rd layer
             (51.3, 20.1, 2.8, 5.7),
             (44.8, 20.1, 2.8, 5.7),
-            (45.5, 24.8, 7.8, 1),
+            (47.6, 24.8, 3.8, 1),
             (33.2, 23.4, 7.8, 1),
             (9.9, 25, 11.3, 1),
-            (0.4, 20.1, 7.5, 5.8),
+            (1.4, 20.1, 6.5, 5.8),
             (23.4, 18.5, 7.5, 4.2),
             (11.8, 21.8, 3, 0.8),
             (1.7, 13.6, 1.6, 1),
@@ -227,8 +247,8 @@ class World:
             # 2nd layer
             (34.8, 30, 2.9, 1),
             (26.7, 26.7, 5.9, 1),
-            (31.3, 26.7, 1.4, 5),
-            (23.6, 31.3, 9, 1.2),
+            (31.3, 26.7, 1.4, 5.8),
+            (23.6, 31.3, 7.7, 1.2),
             (10, 28.4, 4.8, 1),
             (21.6, 21.9, 1.4, 2.3),
             (19.8, 18.5, 1.6, 1),
@@ -237,7 +257,7 @@ class World:
 
 
             # Ground level
-            (0.3, 35, 59, 6)
+            (0.3, 35, 58.8, 6)
         ]
         
         for plat in platform_data:
@@ -331,6 +351,7 @@ while run:
 
     # Draw the world (collision boxes)
     world.draw(screen)
+    draw_grid(screen)
     
     # Draw the player
     screen.blit(player.image, player.rect)
