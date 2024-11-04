@@ -4,32 +4,15 @@ from pygame import mixer
 import os
 import time
 
+
 # Initialize Pygame
 pygame.mixer.pre_init(44100, -16, 2, 512)
 mixer.init()
 pygame.init()
 
-# Get the screen resolution
-infoObject = pygame.display.Info()
-monitor_width = infoObject.current_w
-monitor_height = infoObject.current_h
-
-# Calculate the game window size (90% of screen size while maintaining aspect ratio)
-SCREEN_SCALE = 0.9
-target_width = int(monitor_width * SCREEN_SCALE)
-target_height = int(monitor_height * SCREEN_SCALE)
-
-# Load and get aspect ratio from first level background (as reference)
-original_bg = pygame.image.load('Level1.png')
-bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
-
-# Adjust window size to maintain aspect ratio
-if target_width / target_height > bg_aspect_ratio:
-    SCREEN_WIDTH = int(target_height * bg_aspect_ratio)
-    SCREEN_HEIGHT = target_height
-else:
-    SCREEN_WIDTH = target_width
-    SCREEN_HEIGHT = int(target_width / bg_aspect_ratio)
+# Set the desired resolution
+SCREEN_WIDTH = 1539
+SCREEN_HEIGHT = 940
 
 # Center the window on the screen
 os.environ['SDL_VIDEO_CENTERED'] = '1'
@@ -49,6 +32,17 @@ keys_collected = 0
 game_start_time = None
 level_times = []
 dialogue_states = {}
+
+# Load and scale the background for each level
+level_backgrounds = {}
+for i in range(1, 6):  # Assuming you have 5 levels
+    original_bg = pygame.image.load(f'Level Data/Level Image/LEVEL{i}.png')
+    level_backgrounds[i] = pygame.transform.scale(original_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+# You may need to adjust other elements (buttons, player size, etc.) to fit the new resolution
+# For example:
+# start_button = Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2, start_btn)
+# restart_button = Button(SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 + 100, restart_img)
 
 # Define colors
 WHITE = (255, 255, 255)
@@ -70,7 +64,7 @@ key_img = pygame.transform.scale(key_img, (TILE_SIZE, TILE_SIZE))
 npc_img = pygame.transform.scale(npc_img, (int(TILE_SIZE * 1.2), int(TILE_SIZE * 1.2)))
 
 # Load sounds
-pygame.mixer.music.load('img/music.wav')
+pygame.mixer.music.load('Audio/Louie Zong - BOSS RUSH/Louie Zong - BOSS RUSH - 05 ______REST ZONE______.mp3')
 pygame.mixer.music.play(-1, 0.0, 5000)
 jump_fx = pygame.mixer.Sound('img/jump.wav')
 jump_fx.set_volume(0.5)
@@ -384,11 +378,11 @@ LEVEL_REQUIREMENTS = {
 
 # Level backgrounds
 level_backgrounds = {
-    1: pygame.image.load('Level1.png'),
-    2: pygame.image.load('Level2game!.png'),
-    3: pygame.image.load('Level3game!!.png'),
-    4: pygame.image.load('Level4.png'),
-    5: pygame.image.load('Level5.png')
+    1: pygame.image.load('Level Data/Level Image/LEVEL1.png'),
+    2: pygame.image.load('Level Data/Level Image/Level2game!.png'),
+    3: pygame.image.load('Level Data/Level Image/Level3game!!.png'),
+    4: pygame.image.load('Level Data/Level Image/Level4.png'),
+    5: pygame.image.load('Level Data/Level Image/Level5.png')
 }
 
 # Update the background scaling code:
@@ -1258,6 +1252,7 @@ game_over = 0  # Make sure game_over is initialized
 
 while running:
     clock.tick(fps)
+    print(f"Current resolution: {screen.get_width()}x{screen.get_height()}")
         # Also add these variables at the start of the game loop section:
     if 'elapsed_time' not in locals():
         elapsed_time = 0
