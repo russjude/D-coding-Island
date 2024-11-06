@@ -250,7 +250,7 @@ def main():
                         won = True
                         game_over = True
                         feedback_messages.append(FeedbackMessage("Congratulations! You won!", 5000, GREEN))
-                        play_again_message = FeedbackMessage("Press SPACE to play again", float('inf'))
+                        return True  # Return True when player wins
                     elif len(guesses) >= GRID_SIZE:
                         game_over = True
                         feedback_messages.append(FeedbackMessage(f"Game Over! The word was {secret_word}", 5000))
@@ -264,6 +264,5 @@ def main():
                     feedback_messages.append(FeedbackMessage("Word is too short!", 2000))
 
         pygame.display.flip()
-
 if __name__ == "__main__":
     main()

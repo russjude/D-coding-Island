@@ -4,6 +4,29 @@ from pygame import mixer
 import os
 import time
 
+def load_minigame(level):
+    """Load a minigame module when needed"""
+    try:
+        if level == 1:
+            from mini_game1 import main  # Change to your actual game file/function
+            return main()
+        elif level == 2:
+            from mini_game2 import main  # Change to your actual game file/function
+            return main()
+        elif level == 3:
+            from mini_game3 import main  # Change to your actual game file/function
+            return main()
+        elif level == 4:
+            from mini_game4 import main  # Change to your actual game file/function
+            return main()
+        elif level == 5:
+            from mini_game5 import main  # Change to your actual game file/function
+            return main()
+    except ImportError as e:
+        print(f"Warning: Could not load minigame {level}: {e}")
+        return False
+    return False
+
 
 # Initialize Pygame
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -35,7 +58,7 @@ dialogue_states = {}
 
 # Load and scale the background for each level
 level_backgrounds = {}
-for i in range(1, 6):  # Assuming you have 5 levels
+for i in range(0, 6):  # Changed to include Level 0
     original_bg = pygame.image.load(f'Level Data/Level Image/LEVEL{i}.png')
     level_backgrounds[i] = pygame.transform.scale(original_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
@@ -73,6 +96,10 @@ game_over_fx.set_volume(0.5)
 
 # Add new constant for blue platforms
 LEVEL_BLUE_DATA = {
+    0: [
+
+
+    ],
     1: [
 
     ],
@@ -101,6 +128,35 @@ LEVEL_BLUE_DATA = {
 
 # Level platform data (you'll need to adjust these coordinates based on your level designs)
 LEVEL_PLATFORM_DATA = {
+    0: [
+            # Top platforms
+            (5.2, 13.4, 6, 2.5),    
+            (48, 13.4, 6, 2.5),   
+
+            # small-top platform
+            (13.3, 15.5, 1.4, 1.0), 
+            (44.4, 15.5, 1.6, 1.0), 
+            
+            # semi-top platform
+            (16.7, 16.6, 4.5, 1.0), 
+            (38, 16.6, 4.5, 1.0), 
+
+            # Middle platform
+            (26.5, 18.3, 6.2, 2.5),  
+            
+            # Lower platforms
+            (34.6, 23.2, 4.8, 2.5),
+            (19.9, 23.2, 4.7, 2.5),
+            
+            # Bottom platforms
+            (11.8, 28, 6.2, 2.5),
+            (26.6, 28, 6.2, 2.5),
+            (41.3, 28, 8, 1.),
+            
+            # Ground level
+            (0, 33, 8, 3.0),
+            (51, 33, 8.2, 3.0),
+    ],
     1: [
             # 5th layer
             (23.1, 8.4, 4.8, 1.4),
@@ -367,17 +423,9 @@ LEVEL_PLATFORM_DATA = {
     ]
 }
 
-# Level requirements (keys needed per level)
-LEVEL_REQUIREMENTS = {
-    1: 4,
-    2: 5,
-    3: 6,
-    4: 8,
-    5: 10
-}
-
 # Level backgrounds
 level_backgrounds = {
+    0: pygame.image.load('Level Data/Level Image/LEVEL0.png'),
     1: pygame.image.load('Level Data/Level Image/LEVEL1.png'),
     2: pygame.image.load('Level Data/Level Image/Level2game!.png'),
     3: pygame.image.load('Level Data/Level Image/Level3game!!.png'),
@@ -428,96 +476,129 @@ def __init__(self, level_data, deadly_data):
         ))
 
     
+# Add Level 0 to LEVEL_REQUIREMENTS
+LEVEL_REQUIREMENTS = {
+    0: 3,  # For tutorial level
+    1: 4,
+    2: 5,
+    3: 6,
+    4: 8,
+    5: 10
+}
+
+# Update STORYLINE dictionary to match story document
 STORYLINE = {
     "intro": [
-        "img/Background.png",
-        "img/Background.png",
-        "You've just won the international decoding competition and decided to celebrate by going fishing.",
-        "Suddenly, you were ambushed by mysterious spirits and knocked unconscious.",
-        "You wake up and find yourself washed up on an unknown island.",
-        "A note lies next to you, and it reads:",
-        '"We are the spirits of the past decoding masters. To prove your worth, you must complete a set of challenges."',
-        "Determined to face the challenges head-on, you set out to meet the first spirit guarding the island."
+        "You remember the moment you stumbled upon the ancient artifact, half-buried in the basement of that old library.",
+        "It was a stone box, covered in intricate, interlocking symbols that seemed to shift if you stared too long.",
+        "As you worked, carefully pressing and turning parts of the stone, the symbols clicked into alignment.",
+        "The box opened, releasing a chill that seeped straight to your bones.",
+        "Inside was a brittle parchment with haunting words: 'Whoever unlocks these secrets is bound to us.'",
+        "'Your presence is now required. The island awaits.'"
+    ],
+    "level0": [
+        "The ghostly voice of Eralt lingers in the air as you begin.",
+        '"Beware, young master. The island knows your fears, your weaknesses."',
+        '"Solve the code, and move closer to your destiny."',
+        '"Fail, and join the lost souls who could not decode the island\'s secrets."',
+        '"Master?.." With your heart pounding, you take a deep breath and step forward,',
+        "ready to solve the first of many mysteries in this shadowy realm."
     ],
     "level1": [
-        "You encounter Palak the Assassin, the spirit guarding the first level.",
-        '"Greetings, young decoder. Your first challenge awaits. Prove your skills and proceed."',
-        "Palak explains the rules of the challenge and the dangers that lie ahead.",
-        '"Collect the keys scattered throughout the level to unlock the door and advance."',
-        '"But beware, the path is treacherous, and one misstep could lead to your demise."',
-        "Press SPACE to begin the challenge..."
+        "As you decipher the shifting symbols on the stone slab, a sudden flash of blinding light erupts.",
+        "When it fades, a figure steps forward with silent, lethal grace.",
+        "Dressed in dark, flowing robes and wielding twin daggers that glint in the moonlight,",
+        "she introduces herself with a cold smile.",
+        '"I am Palak, the Assassin, Guardian of the First Level."',
+        '"To pass my challenge, you must prove you can see through deception and lies."',
+        '"Codes are more than words—they\'re veils of truth and deceit. Decipher mine, or face the consequences."'
     ],
     "level2": [
-        "As you progress, you come face to face with Russ the Wizard.",
-        '"Ah, the rising star. Your journey has just begun. Show me your coding prowess!"',
-        "Russ conjures magical obstacles and riddles to test your problem-solving abilities.",
-        '"Decipher the clues and overcome the challenges to prove your worth."',
-        '"Remember, in the realm of coding, logic and creativity are your greatest allies."',
-        "Press SPACE to continue your quest..."
+        "The mist pulls you forward to a spiraling tower covered in ancient runes.",
+        "At the top waits Russ, the Wizard. His eyes hold the gleam of forbidden knowledge.",
+        '"Ah, the new champion has arrived."',
+        "He gestures to a puzzle box floating in mid-air, surrounded by a shimmering aura.",
+        '"This test is one of patience and intellect."',
+        '"You must unlock this box without using brute force; the wrong twist will reset it."',
+        '"Fail, and your mind will be trapped in an endless loop."'
     ],
     "level3": [
-        "Halfway through your quest, you meet Geoff the Autocrat.",
-        '"Impressive, but can you handle the trials that lie ahead? Let us see!"',
-        "Geoff presents you with complex algorithms and data structures to navigate.",
-        '"Efficiency and optimization are key to conquering this level."',
-        '"Show me your mastery of code, and you shall pass this threshold."',
-        "Press SPACE to tackle the challenges head-on..."
+        "The scenery morphs into a grand, oppressive throne room.",
+        "Seated on the throne is Geoff, the Autocrat, draped in black, a crown of thorns upon his brow.",
+        '"So you\'ve passed the others. But codes are not just puzzles; they\'re tools of control, of power."',
+        '"I rule through secrets."',
+        "He gestures to an enormous map with encrypted marks scattered across it.",
+        '"Your task is to decipher the locations on this map."',
+        '"Fail, and you will be exiled into the barren lands."'
     ],
     "level4": [
-        "Near the end of your journey, Jessica the Wraith appears before you.",
-        '"You have come far, but the true test of your abilities awaits. Brace yourself!"',
-        "Jessica challenges you with intricate puzzles and mind-bending riddles.",
-        '"Your coding skills and logical thinking will be pushed to their limits."',
-        '"Prove that you have what it takes to be a true decoding master!"',
-        "Press SPACE to face the final trials..."
+        "The shadows deepen, and you're surrounded by a ghostly fog.",
+        "From it, a figure in tattered, ethereal robes emerges—Jessica, the Wraith.",
+        "Her eyes glow with an eerie, otherworldly light as she glides toward you.",
+        '"You are brave, but bravery means nothing in the face of fear."',
+        '"This trial is not of logic, but of your darkest nightmares."',
+        "A mirror appears, showing twisted images of your deepest fears.",
+        '"Face your fears, or be lost to them forever."'
     ],
     "level5": [
-        "At the final level, you stand before Jacobo the Undead King.",
-        '"Decoding master, your final challenge is here. Prove your worth and claim your rightful title!"',
-        "Jacobo presents you with the ultimate coding challenge, a combination of all previous trials.",
-        '"Utilize all the skills and knowledge you have acquired throughout your journey."',
-        '"Emerge victorious, and the title of \'Decoding Master\' shall be yours!"',
-        "Press SPACE to begin the final showdown..."
+        "You arrive at a shadowy castle ruin where the final guardian awaits: Jacobo, the Undead King.",
+        "His skeletal form radiates an unholy power, and his hollow eyes burn with a fierce light.",
+        '"You stand before the final trial, mortal."',
+        '"I am Jacobo, the Undead King, master of the lost and forgotten."',
+        '"To claim victory, you must decipher the oldest code of all,"',
+        '"the language of life and death itself."'
     ],
     "ending": [
-        "Victorious, you stand before the spirits, holding your well-earned trophy.",
-        '"Congratulations, young one. You have proven yourself worthy of the title \'Decoding Master\'!"',
-        "The spirits acknowledge your skills and bestow their blessings upon you.",
-        "With a sense of pride and accomplishment, you set sail back home, ready for your next coding adventure!"
+        "The tome releases a blinding light. When it fades, you're back on the beach.",
+        "The island seems quiet, as if holding its breath. But something is different—you can feel it.",
+        "As you touch the sand, it shifts, forming into a new message:",
+        '"Congratulations, you have proven yourself. But know this:"',
+        '"The title of decoding master is not a prize, but a burden."',
+        '"The codes you hold now contain secrets that even the spirits dare not speak."',
+        '"Guard them well, for they will change everything."'
     ]
 }
 
-# Level dialogues
+# Update LEVEL_DIALOGUES dictionary to add Level 0
 LEVEL_DIALOGUES = {
+    0: [
+        "Tutorial Level: Learning the Basics",
+        "Master the art of movement and key collection.",
+        "Collect 3 keys to proceed to your first real challenge.",
+        "Press SPACE to continue..."
+    ],
     1: [
-        "Welcome to Decoding Island!",
-        "You've woken up on a mysterious island...",
-        "To proceed to the next level, collect 4 keys scattered around.",
+        "Level 1: The Assassin's Trial",
+        "Find 4 keys while avoiding deadly traps.",
         "Press SPACE to continue..."
     ],
     2: [
-        "Level 2: The challenge increases!",
-        "Find 5 keys to unlock the next area.",
+        "Level 2: The Wizard's Tower",
+        "Collect 5 keys hidden by magical illusions.",
         "Press SPACE to continue..."
     ],
     3: [
-        "Level 3: Halfway there!",
-        "Collect 6 keys to proceed.",
+        "Level 3: The Autocrat's Domain",
+        "Gather 6 keys from this sprawling fortress.",
         "Press SPACE to continue..."
     ],
     4: [
-        "Level 4: The difficulty rises!",
-        "8 keys are required for the next level.",
+        "Level 4: The Wraith's Nightmare",
+        "Find 8 keys in this realm of shadows.",
         "Press SPACE to continue..."
     ],
     5: [
-        "Final Level!",
-        "Collect 10 keys to complete your journey.",
+        "Final Level: The Undead King's Castle",
+        "Collect all 10 keys to complete your journey.",
         "Press SPACE to continue..."
     ]
 }
 
 LEVEL_DEADLY_DATA = {
+    0: [
+
+        
+    ],
     1: [
         
     ],
@@ -552,6 +633,10 @@ LEVEL_DEADLY_DATA = {
 
 # Update LEVEL_ENEMY_DATA to include boundary information:
 LEVEL_ENEMY_DATA = {
+    0: [
+
+        
+    ],
     1: [
         (17, 33.4, "horizontal", 17, 32)  # x, y, direction, boundary_start, boundary_end
     ],
@@ -668,6 +753,145 @@ def show_dialogue(dialogue_lines):
     
     return True
 
+class Camera:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.scroll_x = 0
+        self.scroll_y = 0
+        self.zoom = 1  # Start at no zoom
+        self.target_zoom = 2  # Target zoom level
+        self.zoom_speed = 0.02  # Speed of zoom animation
+        self.transitioning = False
+        self.transition_start_time = 0
+        self.transition_delay = 2000  # 2 second delay before starting zoom
+        self.transition_duration = 2000  # 2 seconds for the actual zoom
+        self.transition_total_time = self.transition_delay + self.transition_duration
+        self.transition_complete = False  # New flag to track completion
+        
+        # Calculate the visible area dimensions
+        self.visible_width = width
+        self.visible_height = height
+        
+    def start_transition(self):
+        self.transitioning = True
+        self.transition_complete = False
+        self.zoom = 1
+        self.transition_start_time = pygame.time.get_ticks()
+    
+    def update(self, target):
+        current_time = pygame.time.get_ticks()
+        
+        # Handle zoom transition
+        if self.transitioning:
+            elapsed = current_time - self.transition_start_time
+            
+            # Wait for delay before starting zoom
+            if elapsed >= self.transition_delay:
+                # Calculate progress only for the zoom portion
+                zoom_elapsed = elapsed - self.transition_delay
+                progress = min(zoom_elapsed / self.transition_duration, 1.0)
+                
+                # Use easing function for smooth transition
+                progress = self.ease_out_cubic(progress)
+                self.zoom = 1 + (self.target_zoom - 1) * progress
+                
+                if progress >= 1:
+                    self.transitioning = False
+                    self.zoom = self.target_zoom
+                    self.transition_complete = True  # Mark transition as complete
+            
+        # Update visible area based on current zoom
+        self.visible_width = self.width // self.zoom
+        self.visible_height = self.height // self.zoom
+        
+        # Center the camera on the target (player)
+        self.scroll_x = target.rect.centerx - self.visible_width // 2
+        self.scroll_y = target.rect.centery - self.visible_height // 2
+        
+        # Keep the camera within the level bounds
+        self.scroll_x = max(0, min(self.scroll_x, SCREEN_WIDTH - self.visible_width))
+        self.scroll_y = max(0, min(self.scroll_y, SCREEN_HEIGHT - self.visible_height))
+    
+    def ease_out_cubic(self, x):
+        # Cubic easing function for smooth animation
+        return 1 - pow(1 - x, 3)
+
+    def apply(self, surface, entity):
+        # Create a new rect for the entity's position relative to the camera
+        return pygame.Rect(
+            entity.rect.x - self.scroll_x,
+            entity.rect.y - self.scroll_y,
+            entity.rect.width,
+            entity.rect.height
+        )
+
+    def apply_sprite(self, surface, sprite):
+        # Return the position where the sprite should be drawn
+        return (sprite.rect.x - self.scroll_x,
+                sprite.rect.y - self.scroll_y)
+                
+    def apply_rect(self, rect):
+        # Apply camera offset to a rect
+        return pygame.Rect(
+            rect.x - self.scroll_x,
+            rect.y - self.scroll_y,
+            rect.width,
+            rect.height
+        )
+
+
+def create_zoomed_view(screen, camera, player, world, keys_group, door, npc, moving_enemies):
+    # Calculate current visible area based on zoom level
+    current_visible_width = int(SCREEN_WIDTH // camera.zoom)
+    current_visible_height = int(SCREEN_HEIGHT // camera.zoom)
+    
+    # Create a subsurface for the visible area
+    view_surface = pygame.Surface((current_visible_width, current_visible_height))
+    
+    # Draw the background portion that's visible
+    view_surface.blit(level_backgrounds[current_level], 
+                     (-camera.scroll_x, -camera.scroll_y))
+    
+    # Draw all game objects on the zoomed surface
+    for key in keys_group:
+        pos = camera.apply_sprite(view_surface, key)
+        if (0 <= pos[0] < current_visible_width and 
+            0 <= pos[1] < current_visible_height):
+            view_surface.blit(key.image, pos)
+    
+    # Draw door and NPC with visibility check
+    door_pos = camera.apply_sprite(view_surface, door)
+    npc_pos = camera.apply_sprite(view_surface, npc)
+    if (0 <= door_pos[0] < current_visible_width and 
+        0 <= door_pos[1] < current_visible_height):
+        view_surface.blit(door.image, door_pos)
+    if (0 <= npc_pos[0] < current_visible_width and 
+        0 <= npc_pos[1] < current_visible_height):
+        view_surface.blit(npc.image, npc_pos)
+    
+    # Draw enemies
+    for enemy in moving_enemies:
+        enemy_pos = camera.apply_sprite(view_surface, enemy)
+        if (0 <= enemy_pos[0] < current_visible_width and 
+            0 <= enemy_pos[1] < current_visible_height):
+            view_surface.blit(enemy.image, enemy_pos)
+    
+    # Draw player
+    player_pos = camera.apply_sprite(view_surface, player)
+    if (0 <= player_pos[0] < current_visible_width and 
+        0 <= player_pos[1] < current_visible_height):
+        view_surface.blit(player.image, player_pos)
+    
+    # Scale the view surface to fill the screen
+    scaled_surface = pygame.transform.scale(view_surface, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen.blit(scaled_surface, (0, 0))
+    
+    # Draw HUD elements
+    draw_text(f"Level {current_level}", 40, WHITE, 10, 10)
+    draw_text(f"Keys: {keys_collected}/{LEVEL_REQUIREMENTS[current_level]}", 40, WHITE, 10, 60)
+
+    
 class CollisionTile:
     def __init__(self, x, y, width, height):
         self.rect = pygame.Rect(x, y, width, height)
@@ -695,6 +919,7 @@ class NPC(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -725,7 +950,7 @@ class Player(pygame.sprite.Sprite):
         self.direction = 1
         self.in_air = True
 
-    def update(self, game_over, world, keys_group):
+    def update(self, game_over, world, keys_group, camera):  # Add camera parameter
         global keys_collected
         
         dx = 0
@@ -733,45 +958,47 @@ class Player(pygame.sprite.Sprite):
         walk_cooldown = 5
 
         if game_over == 0:
-            key = pygame.key.get_pressed()
-            
-            if key[pygame.K_SPACE] and not self.jumped and not self.in_air:
-                jump_fx.play()
-                self.vel_y = JUMP_SPEED
-                self.jumped = True
-                self.in_air = True
-            
-            if not key[pygame.K_SPACE]:
-                self.jumped = False
+            # Only process movement if camera transition is complete
+            if camera.transition_complete:
+                key = pygame.key.get_pressed()
+                
+                if key[pygame.K_SPACE] and not self.jumped and not self.in_air:
+                    jump_fx.play()
+                    self.vel_y = JUMP_SPEED
+                    self.jumped = True
+                    self.in_air = True
+                
+                if not key[pygame.K_SPACE]:
+                    self.jumped = False
 
-            if key[pygame.K_LEFT]:
-                dx -= MOVE_SPEED
-                self.counter += 1
-                self.direction = -1
-            if key[pygame.K_RIGHT]:
-                dx += MOVE_SPEED
-                self.counter += 1
-                self.direction = 1
-            if not key[pygame.K_LEFT] and not key[pygame.K_RIGHT]:
-                self.counter = 0
-                self.index = 0
-                if self.direction == 1:
-                    self.image = self.animations_right[self.index]
-                else:
-                    self.image = self.animations_left[self.index]
-
-            # Handle animation
-            if self.counter > walk_cooldown:
-                self.counter = 0
-                self.index += 1
-                if self.index >= len(self.animations_right):
+                if key[pygame.K_LEFT]:
+                    dx -= MOVE_SPEED
+                    self.counter += 1
+                    self.direction = -1
+                if key[pygame.K_RIGHT]:
+                    dx += MOVE_SPEED
+                    self.counter += 1
+                    self.direction = 1
+                if not key[pygame.K_LEFT] and not key[pygame.K_RIGHT]:
+                    self.counter = 0
                     self.index = 0
-                if self.direction == 1:
-                    self.image = self.animations_right[self.index]
-                else:
-                    self.image = self.animations_left[self.index]
+                    if self.direction == 1:
+                        self.image = self.animations_right[self.index]
+                    else:
+                        self.image = self.animations_left[self.index]
 
-            # Add gravity
+                # Handle animation
+                if self.counter > walk_cooldown:
+                    self.counter = 0
+                    self.index += 1
+                    if self.index >= len(self.animations_right):
+                        self.index = 0
+                    if self.direction == 1:
+                        self.image = self.animations_right[self.index]
+                    else:
+                        self.image = self.animations_left[self.index]
+
+            # Always apply gravity regardless of camera state
             self.vel_y += GRAVITY
             if self.vel_y > 10:
                 self.vel_y = 10
@@ -852,18 +1079,18 @@ class World:
                 
                 self.blue_tiles.append(CollisionTile(x, y, width, height))
 
-    def draw(self, screen):
-        # Draw regular collision tiles in red
-        for tile in self.collision_tiles:
-            pygame.draw.rect(screen, (255, 0, 0), tile.rect, 1)
-        
-        # Draw deadly tiles in green
-        for tile in self.deadly_tiles:
-            pygame.draw.rect(screen, (0, 255, 0), tile.rect, 2)
-        
-        # Draw blue tiles in blue
-        for tile in self.blue_tiles:
-            pygame.draw.rect(screen, (0, 0, 255), tile.rect, 1)
+                '''    def draw(self, screen):
+                        # Draw regular collision tiles in red
+                        for tile in self.collision_tiles:
+                            pygame.draw.rect(screen, (255, 0, 0), tile.rect, 1)
+                        
+                        # Draw deadly tiles in green
+                        for tile in self.deadly_tiles:
+                            pygame.draw.rect(screen, (0, 255, 0), tile.rect, 2)
+                        
+                        # Draw blue tiles in blue
+                        for tile in self.blue_tiles:
+                            pygame.draw.rect(screen, (0, 0, 255), tile.rect, 1)'''
 
     def check_collision(self, player, dx, dy):
         # Check collision with both regular and blue tiles
@@ -889,33 +1116,27 @@ class World:
 def init_level(level_num):
     global keys_collected, game_start_time, current_level
     keys_collected = 0
-    current_level = level_num  # Update current_level before creating World instance
+    current_level = level_num
     
     if game_start_time is None:
         game_start_time = time.time()
     
-    # Create key positions for the level
+    # Create and initialize level objects as before
     keys_group = pygame.sprite.Group()
     key_positions = generate_key_positions(level_num)
     for pos in key_positions:
         keys_group.add(Key(pos[0], pos[1]))
     
-    # Position door and NPC based on level layout
     platforms = LEVEL_PLATFORM_DATA[level_num]
-    
-    # Find suitable platform for door placement
     suitable_platform = find_suitable_platform(platforms)
     
-    # Calculate door position on the suitable platform
     platform_x = suitable_platform[0]
     platform_y = suitable_platform[1]
     platform_width = suitable_platform[2]
     
-    # Place door near the right edge of the platform
     door_x = (platform_x + platform_width - 2) * TILE_SIZE
     door_y = (platform_y - 2) * TILE_SIZE
     
-    # Ensure door isn't too close to screen edge
     if door_x > SCREEN_WIDTH - 3 * TILE_SIZE:
         door_x = SCREEN_WIDTH - 3 * TILE_SIZE
     
@@ -925,25 +1146,19 @@ def init_level(level_num):
     deadly_tiles = LEVEL_DEADLY_DATA[level_num]
     world = World(platforms, deadly_tiles)
     
-    # Find safe spawn position
-    spawn_x = 100  # Default x position
-    spawn_y = 0    # Will be set based on platform
+    spawn_x = 100
+    spawn_y = 0
     
-    # Find the leftmost ground platform
     ground_platforms = []
     for plat in platforms:
-        # Look for platforms in the lower third of the screen
-        if plat[1] > (SCREEN_HEIGHT / TILE_SIZE) * 0.7:  # 70% down the screen
+        if plat[1] > (SCREEN_HEIGHT / TILE_SIZE) * 0.7:
             ground_platforms.append(plat)
     
     if ground_platforms:
-        # Sort by x position to find leftmost platform
         leftmost = sorted(ground_platforms, key=lambda p: p[0])[0]
-        # Place player on top of the platform
-        spawn_x = (leftmost[0] + 1) * TILE_SIZE  # Offset by 1 tile from the left edge
-        spawn_y = leftmost[1] * TILE_SIZE - TILE_SIZE * 2  # Place above the platform
+        spawn_x = (leftmost[0] + 1) * TILE_SIZE
+        spawn_y = leftmost[1] * TILE_SIZE - TILE_SIZE * 2
     
-    # Create player at safe position
     player = Player(spawn_x, spawn_y)
     
     moving_enemies.empty()
@@ -952,7 +1167,8 @@ def init_level(level_num):
         enemy = MovingEnemy(x, y, direction, boundary_start, boundary_end)
         moving_enemies.add(enemy)
     
-    return keys_group, door, npc, world, moving_enemies, player  # Return player as well
+    # Don't start camera transition here anymore
+    return keys_group, door, npc, world, moving_enemies, player
 
 
 class MovingEnemy(pygame.sprite.Sprite):
@@ -1013,18 +1229,6 @@ class MovingEnemy(pygame.sprite.Sprite):
             self.rect.height - (collision_margin * 2)
         )
         return collision_rect.colliderect(player.rect)
-    
-    def draw_boundaries(self, screen):
-        if self.direction == "horizontal":
-            # Draw horizontal boundary line
-            pygame.draw.line(screen, (255, 0, 0), 
-                           (self.boundary_start, self.rect.centery),
-                           (self.boundary_end, self.rect.centery), 2)
-        else:
-            # Draw vertical boundary line
-            pygame.draw.line(screen, (255, 0, 0), 
-                           (self.rect.centerx, self.boundary_start),
-                           (self.rect.centerx, self.boundary_end), 2)
 
 class Button:
     def __init__(self, x, y, image):
@@ -1238,6 +1442,7 @@ def generate_key_positions(level):
 current_state = "start_screen"
 start_button = Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2, start_btn)
 restart_button = Button(SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 + 100, restart_img)
+camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
 # Create initial player and world objects
 player = Player(100, SCREEN_HEIGHT - 130)
@@ -1269,31 +1474,32 @@ while running:
 
     if current_state == "start_screen":
         screen.blit(start_bg, (0, 0))
-        if start_button.draw(screen):
-            current_state = "intro_dialogue"
+        current_state = "intro_dialogue"
 
     elif current_state == "intro_dialogue":
         if show_dialogue(STORYLINE["intro"]):
-            current_state = "playing"
-            current_level = 1
-            keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
+            if show_dialogue(STORYLINE["level0"]):  # Show Level 0 dialog first
+                current_state = "playing"
+                current_level = 0
+                keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
         else:
             current_state = "playing"
-            current_level = 1
+            current_level = 0  # Start with Level 0 instead of Level 1
             keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
     
     elif current_state == "playing":
-        screen.blit(level_backgrounds[current_level], (0, 0))
-        
         # Create unique keys for tracking dialogue states
         storyline_key = f'storyline_{current_level}'
         level_key = f'level_{current_level}'
+        transition_key = f'transition_{current_level}'
         
-        # Initialize dialogue states if needed
+        # Initialize states if needed
         if storyline_key not in dialogue_states:
             dialogue_states[storyline_key] = False
         if level_key not in dialogue_states:
             dialogue_states[level_key] = False
+        if transition_key not in dialogue_states:
+            dialogue_states[transition_key] = False
         
         # Show storyline dialogue first
         if not dialogue_states[storyline_key]:
@@ -1306,67 +1512,52 @@ while running:
         elif not dialogue_states[level_key]:
             if show_dialogue(LEVEL_DIALOGUES[current_level]):
                 dialogue_states[level_key] = True
+                # Start camera transition after dialogues are complete
+                camera.start_transition()
             else:
                 dialogue_states[level_key] = True
+                camera.start_transition()
         
-        draw_text(f"Level {current_level}", 40, WHITE, 10, 10)
-        draw_text(f"Keys: {keys_collected}/{LEVEL_REQUIREMENTS[current_level]}", 40, WHITE, 10, 60)
+        # Update and draw game
+        camera.update(player)
+        create_zoomed_view(screen, camera, player, world, keys_group, door, npc, moving_enemies)
         
+        # Check collisions and handle game over
         deadly_collision = world.check_collision(player, 0, 0)
         if deadly_collision == "deadly":
             game_over = -1
             game_over_fx.play()
         
-        # Update and draw game objects
-        world.draw(screen)
-        keys_group.draw(screen)
-        
-        # Draw enemies and their boundaries
+        # Update game objects
+        game_over = player.update(game_over, world, keys_group, camera)
         moving_enemies.update()
-        for enemy in moving_enemies:
-            enemy.draw_boundaries(screen)
-        moving_enemies.draw(screen)
-        
-        screen.blit(player.image, player.rect)
-        screen.blit(door.image, door.rect)
-        screen.blit(npc.image, npc.rect)
-
-                # Update and draw game objects
-        game_over = player.update(game_over, world, keys_group)
         
         # Check enemy collisions
         for enemy in moving_enemies:
-            enemy.update()
             if enemy.check_collision(player):
                 game_over = -1
                 game_over_fx.play()
                 break
         
-        world.draw(screen)
-        keys_group.draw(screen)
-        
-        # Draw enemies
-        moving_enemies.draw(screen)
-        
-        # Draw boundary lines (optional - for debugging)
-        for enemy in moving_enemies:
-            enemy.draw_boundaries(screen)
-        
+        # Handle game over state
         if game_over == -1:
             draw_text('GAME OVER!', 70, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
             if restart_button.draw(screen):
                 game_over = 0
                 keys_collected = 0
                 keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
-
         
+                # Handle level completion
+        # Modify the game loop section that handles level completion:
+        # In your game loop, replace the level completion section with:
+        # In your game loop, replace the level completion section with:
         elif keys_collected >= LEVEL_REQUIREMENTS[current_level] and pygame.sprite.collide_rect(player, door):
-            # Show completion dialogue
-            if show_dialogue([f"Level {current_level} Complete!", 
-                            "You've found all the keys!", 
-                            "Press SPACE to continue..."]):
-                if current_level < 5:
-                    current_level += 1
+            if current_level == 0:
+                # After tutorial completion
+                if show_dialogue([f"Tutorial Complete! ",
+                                "You've mastered the basics! ",
+                                "Press SPACE to begin your real journey..."]):
+                    current_level = 1
                     storyline_key = f'storyline_{current_level}'
                     level_key = f'level_{current_level}'
                     dialogue_states[storyline_key] = False
@@ -1375,14 +1566,57 @@ while running:
                         elapsed_time = int(time.time() - game_start_time)
                         level_times.append(elapsed_time)
                     keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
-                    player.rect.x = 100
-                    player.rect.y = SCREEN_HEIGHT - 130
-                else:
-                    # Game complete
-                    if show_dialogue(["Congratulations!", 
-                                    "You've completed all levels!", 
-                                    "Press SPACE to see your results..."]):
-                        current_state = "game_complete"
+            else:
+                # Save current game state
+                current_display = screen.copy()
+
+                # Show pre-minigame dialogue
+                if show_dialogue([f"To proceed to the next level,",
+                                f"you must complete the challenge! ",
+                                "Press SPACE to begin..."]):
+                    
+                    try:
+                        # Run the minigame
+                        minigame_result = load_minigame(current_level)
+
+                        if minigame_result:
+                            # Player won the minigame
+                            if current_level < 5:
+                                if show_dialogue([f"Level {current_level} Complete! ",
+                                                "You've conquered both challenges! ",
+                                                "Press SPACE to continue..."]):
+                                    current_level += 1
+                                    storyline_key = f'storyline_{current_level}'
+                                    level_key = f'level_{current_level}'
+                                    dialogue_states[storyline_key] = False
+                                    dialogue_states[level_key] = False
+                                    if game_start_time:
+                                        elapsed_time = int(time.time() - game_start_time)
+                                        level_times.append(elapsed_time)
+                                    keys_group, door, npc, world, moving_enemies, player = init_level(current_level)
+                            else:
+                                # Game complete
+                                if show_dialogue(["Congratulations! ",
+                                                "You've completed all levels! ",
+                                                "Press SPACE to see your results..."]):
+                                    current_state = "game_complete"
+                        else:
+                            # Player lost the minigame
+                            if show_dialogue([f"Challenge failed! ",
+                                            "You must complete this trial to proceed. ",
+                                            "Press SPACE to try again..."]):
+                                # Restore the main game display
+                                screen.blit(current_display, (0,0))
+                                pygame.display.flip()
+
+                    except Exception as e:
+                        print(f"Error running minigame {current_level}: {e}")
+                        if show_dialogue([f"An error occurred! ",
+                                        "Please try again. ",
+                                        "Press SPACE to continue..."]):
+                            # Restore the main game display
+                            screen.blit(current_display, (0,0))
+                            pygame.display.flip()
 
     elif current_state == "game_complete":
         screen.fill(BLACK)

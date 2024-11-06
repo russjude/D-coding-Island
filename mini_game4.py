@@ -265,6 +265,8 @@ show_try_again = False
 blank_spaces = ["_"] * 6
 correct_word = "PYTHON"
 
+reached_final_question = False
+
 feedback_text = ""
 
 # Main game loop with 60 FPS cap
@@ -389,10 +391,12 @@ while True:
 
     else:
         # Draw solved tiles at the top
-        for tile in tiles:
-            tile.draw()
+        if not reached_final_question:
+            for tile in tiles:
+                tile.draw()
 
         if not final_answer_correct:
+            reached_final_question = True
             prompt_surface = large_font.render("You have decoded. Now tell the island what you have created.", True, WHITE)
             prompt_rect = prompt_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))
             screen.blit(prompt_surface, prompt_rect)

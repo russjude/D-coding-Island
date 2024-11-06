@@ -224,6 +224,18 @@ def main():
         if game_vars['winning_line']:
             draw_winning_line(game_vars['winning_line'])
 
+        # Update feedback display based on game state
+        if game_vars['game_over']:
+            display_feedback_image(game_vars['current_feedback'])
+        elif game_vars['first_round']:
+            display_feedback_image("first_move")
+        elif game_vars['can_place_x']:
+            display_feedback_image("click_anywhere")
+        elif current_time - game_vars['feedback_time'] < FEEDBACK_DURATION:
+            display_feedback_image(game_vars['current_feedback'])
+        else:
+            display_feedback_image("type_answer")
+
         # Display question interface after first move
         if not game_vars['first_round'] and not game_vars['game_over']:
             question_surface = QUESTION_FONT.render(f"Question: {game_vars['current_question']}", True, PALAK_LEVEL_1["dark_gray"])
@@ -236,18 +248,6 @@ def main():
             pygame.draw.rect(screen, PALAK_LEVEL_1["dark_gray"], input_box, 2)
             input_surface = INPUT_FONT.render(game_vars['input_text'], True, PALAK_LEVEL_1["dark_gray"])
             screen.blit(input_surface, (input_box.x + 10, input_box.y + 5))
-
-        # Update feedback display based on game state
-        if game_vars['game_over']:
-            display_feedback_image(game_vars['current_feedback'])
-        elif game_vars['first_round']:
-            display_feedback_image("first_move")
-        elif game_vars['can_place_x']:
-            display_feedback_image("click_anywhere")
-        elif current_time - game_vars['feedback_time'] < FEEDBACK_DURATION:
-            display_feedback_image(game_vars['current_feedback'])
-        else:
-            display_feedback_image("type_answer")
 
         # Event handling
         for event in pygame.event.get():
@@ -291,6 +291,7 @@ def main():
                             game_vars['game_over'] = True
                             game_vars['winning_line'] = line
                             game_vars['current_feedback'] = "you_win"
+                            return True  # Return True when player wins
                         else:
                             computer_move()
                             won, line = check_winner('O')
@@ -298,6 +299,7 @@ def main():
                                 game_vars['game_over'] = True
                                 game_vars['winning_line'] = line
                                 game_vars['current_feedback'] = "you_lose"
+                                return False  # Return False when player loses
                             elif is_full():
                                 game_vars['game_over'] = True
                                 game_vars['current_feedback'] = "tie"
