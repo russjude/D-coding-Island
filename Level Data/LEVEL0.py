@@ -62,6 +62,7 @@ jump_fx.set_volume(0.5)
 game_over_fx = pygame.mixer.Sound('img/game_over.wav')
 game_over_fx.set_volume(0.5)
 
+
 class CollisionTile:
     def __init__(self, x, y, width, height):
         self.rect = pygame.Rect(x, y, width, height)
@@ -274,6 +275,26 @@ def draw_text(text, font, text_col, x, y):
     img = font.render(text, True, text_col)
     screen.blit(img, (x, y))
 
+def draw_grid(screen):
+    # Create a new surface for the grid
+    grid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    
+    # Set the alpha value for translucency
+    grid_surface.set_alpha(128)  # Adjust this value for more or less transparency
+
+    # Draw vertical lines
+    for x in range(0, SCREEN_WIDTH, TILE_SIZE):
+        color = (255, 0, 0) if (x // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (x, 0), (x, SCREEN_HEIGHT), 1)
+
+    # Draw horizontal lines
+    for y in range(0, SCREEN_HEIGHT, TILE_SIZE):
+        color = (255, 0, 0) if (y // TILE_SIZE) % 5 == 0 else (200, 200, 200)  # Red for every 5 tiles
+        pygame.draw.line(grid_surface, color, (0, y), (SCREEN_WIDTH, y), 1)
+
+    # Blit the grid surface onto the main screen
+    screen.blit(grid_surface, (0, 0))
+
 # Initialize game objects
 world = World()
 player = Player(100, SCREEN_HEIGHT - 130)
@@ -301,6 +322,7 @@ while run:
 
     # Draw the world (collision boxes)
     world.draw(screen)
+    draw_grid(screen)
     
     # Draw the player
     screen.blit(player.image, player.rect)

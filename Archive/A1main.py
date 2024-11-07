@@ -2,8 +2,8 @@ import pygame
 from pygame.locals import *
 import pickle
 from os import path
-from settings import *
-from player import Player
+from Archive.settings import *
+from Archive.player import Player
 from world import World, key, Button
 
 # Initialize Pygame

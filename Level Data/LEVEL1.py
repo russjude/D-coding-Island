@@ -19,7 +19,7 @@ target_width = int(monitor_width * SCREEN_SCALE)
 target_height = int(monitor_height * SCREEN_SCALE)
 
 # Load and scale the background
-original_bg = pygame.image.load('Level1.png')
+original_bg = pygame.image.load('Level Data/Level Image/LEVEL1.png')
 bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
 
 # Adjust window size to maintain aspect ratio

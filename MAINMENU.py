@@ -382,7 +382,7 @@ def main():
                 print("Could not load CREDITS module")
         elif action == "play":
             try:
-                import FINAL_GAME
+                import FINAL_GAME1 as FINAL_GAME1
                 print("Starting mini-game...")
             except ImportError:
                 print("Could not load MINI_GAME module")

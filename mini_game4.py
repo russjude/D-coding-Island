@@ -397,10 +397,11 @@ while True:
 
         if not final_answer_correct:
             reached_final_question = True
+            # blit the small picture here lamaw
             prompt_surface = large_font.render("You have decoded. Now tell the island what you have created.", True, WHITE)
             prompt_rect = prompt_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))
             screen.blit(prompt_surface, prompt_rect)
-
+            
             # Draw blank spaces
             blank_space_surface = large_font.render(" ".join(blank_spaces), True, WHITE)
             blank_space_rect = blank_space_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))

@@ -4,7 +4,7 @@ from pygame import mixer
 import pickle
 from os import path
 import time
-from Wordle import main as wordle_game  # Import the Wordle game
+from Archive.Wordle import main as wordle_game  # Import the Wordle game
 import pytmx
 
 pygame.mixer.pre_init(44100, -16, 2, 512)

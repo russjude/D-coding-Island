@@ -19,7 +19,7 @@ target_width = int(monitor_width * SCREEN_SCALE)
 target_height = int(monitor_height * SCREEN_SCALE)
 
 # Load and scale the background
-original_bg = pygame.image.load('Level2game!.png')
+original_bg = pygame.image.load('Level Data/Level Image/LEVEL2.png')
 bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
 
 # Adjust window size to maintain aspect ratio
@@ -211,7 +211,7 @@ class World:
 
             # 6th layer
             (51.3, 10.2, 7.5, 5.7),
-            (2.4, 10.2, 4.8, 1.3),
+            (26.4, 10.2, 4.8, 1.3),
             (5.2, 8.6, 4.6, 1),
 
             # 5th layer
