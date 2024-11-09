@@ -6,6 +6,9 @@ import time
 import cv2
 import numpy as np
 import math
+from datetime import datetime, timedelta
+import subprocess
+import sys
 
 def load_minigame(level):
     """Load a minigame module when needed"""
@@ -59,6 +62,14 @@ game_start_time = None
 level_times = []
 dialogue_states = {}
 
+# Add these with other global variables
+paused = False
+pause_start_time = None
+total_pause_time = timedelta(0)
+fade_alpha = 0
+fade_target = 180
+fade_speed = 15
+
 
 # You may need to adjust other elements (buttons, player size, etc.) to fit the new resolution
 # For example:
@@ -78,7 +89,7 @@ restart_img = pygame.image.load('img/restart_btn.png')
 closeddoor_img = pygame.image.load('img/closeddoor.PNG')
 opendoor_img = pygame.image.load('img/opendoor_img.PNG')
 key_img = pygame.image.load('img/key.png')
-npc_img = pygame.image.load('img/skeleton.png')
+npc_img = pygame.image.load('img/Wghost.png')
 key_frames = []
 target_size = (25, 25)  # Your desired size
 
@@ -98,6 +109,24 @@ jump_fx = pygame.mixer.Sound('img/jump.wav')
 jump_fx.set_volume(0.5)
 game_over_fx = pygame.mixer.Sound('img/game_over.wav')
 game_over_fx.set_volume(0.5)
+
+LEVEL_TIME_LIMITS = {
+    0: 60,  # Tutorial: 3 minutes
+    1: 60,  # Level 1: 4 minutes
+    2: 60,  # Level 2: 5 minutes
+    3: 60,  # Level 3: 6 minutes
+    4: 60,  # Level 4: 7 minutes
+    5: 60   # Level 5: 8 minutes
+}
+
+LEVEL_NAMES = {
+    0: "The Awakening Path",
+    1: "Shadows of Deception",
+    2: "Mystic Tower Ascent",
+    3: "Cryptic Dominion",
+    4: "Phantom's Labyrinth",
+    5: "Undead King's Sanctum"
+}
 
 # Add new constant for blue platforms
 LEVEL_BLUE_DATA = {
@@ -708,6 +737,246 @@ LEVEL_ENEMY_DATA = {
     ]
 }
 
+class PauseButton:
+    def __init__(self, screen):
+        self.screen = screen
+        # Create button in top right corner with padding
+        self.rect = pygame.Rect(SCREEN_WIDTH - 120, 10, 100, 30)
+        self.color = (0, 0, 0, 180)  # Semi-transparent black
+        self.hover_color = (50, 50, 50, 180)
+        self.font = pygame.font.SysFont('Bauhaus 93', 24)
+        self.text = self.font.render('PAUSE', True, (255, 255, 255))
+        self.text_rect = self.text.get_rect(center=self.rect.center)
+        self.is_hovered = False
+
+    def draw(self):
+        # Create surface with alpha for transparency
+        button_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+        
+        # Draw button with hover effect
+        color = self.hover_color if self.is_hovered else self.color
+        pygame.draw.rect(button_surface, color, button_surface.get_rect(), border_radius=5)
+        
+        # Draw button on screen
+        self.screen.blit(button_surface, self.rect)
+        self.screen.blit(self.text, self.text_rect)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEMOTION:
+            self.is_hovered = self.rect.collidepoint(event.pos)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1 and self.rect.collidepoint(event.pos):
+                return True
+        return False
+
+class EnhancedGameStats:
+    def __init__(self, screen):
+        self.screen = screen
+        
+        # Load and scale icons with more reasonable size
+        try:
+            icon_size = (32, 32)  # Reduced from 40
+            self.trophy_icon = pygame.transform.scale(pygame.image.load('img/trophy.png'), icon_size)
+            self.key_icon = pygame.transform.scale(pygame.image.load('img/key_icon.png'), icon_size)
+            self.clock_icon = pygame.transform.scale(pygame.image.load('img/clock.png'), icon_size)
+        except Exception as e:
+            print(f"Error loading game stats icons: {e}")
+            self.trophy_icon = pygame.Surface(icon_size)
+            self.trophy_icon.fill((255, 215, 0))
+            self.key_icon = pygame.Surface(icon_size)
+            self.key_icon.fill((255, 255, 255))
+            self.clock_icon = pygame.Surface(icon_size)
+            self.clock_icon.fill((100, 200, 255))
+        
+        # Fonts with better sizes
+        self.title_font = pygame.font.SysFont('Bauhaus 93', 28)
+        self.stats_font = pygame.font.SysFont('Bauhaus 93', 24)
+        self.small_font = pygame.font.SysFont('Bauhaus 93', 20)
+
+    def draw_stats_panel(self, level, keys_collected, required_keys, elapsed_time, time_limit):
+        # Main panel dimensions
+        panel_width = 600  # Fixed width
+        panel_height = 40  # Reduced height
+        panel_x = (SCREEN_WIDTH - panel_width) // 2  # Center horizontally
+        panel_y = 10  # Top padding
+        
+        # Create semi-transparent panel
+        panel_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        pygame.draw.rect(panel_surface, (0, 0, 0, 150), (0, 0, panel_width, panel_height), border_radius=10)
+        
+        # Section widths
+        section_width = panel_width // 3
+        
+        # Level name (left section)
+        level_text = f"{LEVEL_NAMES[level]}"
+        name_surface = self.stats_font.render(level_text, True, (255, 215, 0))
+        name_x = 20  # Left padding
+        name_y = (panel_height - name_surface.get_height()) // 2
+        panel_surface.blit(name_surface, (name_x, name_y))
+        
+        # Time remaining (middle section)
+        remaining_time = time_limit - elapsed_time
+        minutes = int(remaining_time // 60)
+        seconds = int(remaining_time % 60)
+        timer_text = self.stats_font.render(f"{minutes:02}:{seconds:02}", True, (255, 255, 255))
+        timer_x = section_width + (section_width - timer_text.get_width()) // 2
+        timer_y = (panel_height - timer_text.get_height()) // 2
+        panel_surface.blit(timer_text, (timer_x, timer_y))
+        
+        # Keys collected (right section)
+        key_text = self.stats_font.render(f"{keys_collected}/{required_keys}", True, (255, 255, 255))
+        key_x = section_width * 2 + (section_width - key_text.get_width() - self.key_icon.get_width() - 5) // 2
+        key_y = (panel_height - key_text.get_height()) // 2
+        panel_surface.blit(self.key_icon, (key_x, key_y))
+        panel_surface.blit(key_text, (key_x + self.key_icon.get_width() + 5, key_y))
+        
+        # Draw the panel on screen
+        self.screen.blit(panel_surface, (panel_x, panel_y))
+
+class PauseMenu:
+    def __init__(self, screen):
+        self.screen = screen
+        self.options = ['RESUME', 'RESTART LEVEL', 'QUIT TO MENU']
+        
+        # Button dimensions and styling
+        self.button_width = 250
+        self.button_height = 40
+        self.button_spacing = 20
+        
+        # Create button rects centered on screen
+        self.button_rects = []
+        start_y = SCREEN_HEIGHT // 2
+        for i in range(len(self.options)):
+            rect = pygame.Rect(
+                (SCREEN_WIDTH - self.button_width) // 2,
+                start_y + (self.button_height + self.button_spacing) * i,
+                self.button_width,
+                self.button_height
+            )
+            self.button_rects.append(rect)
+            
+        # Fonts
+        self.title_font = pygame.font.SysFont('Bauhaus 93', 50)
+        self.option_font = pygame.font.SysFont('Bauhaus 93', 35)
+        
+        # Colors
+        self.text_color = (255, 255, 255)
+        self.button_color = (50, 50, 50, 180)
+        self.hover_color = (70, 70, 70, 180)
+        self.selected_color = (255, 215, 0)
+        
+        self.hovered = None
+
+    def draw(self):
+        # Draw dark overlay
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        self.screen.blit(overlay, (0, 0))
+        
+        # Draw PAUSED text
+        pause_text = self.title_font.render('PAUSED', True, self.text_color)
+        text_rect = pause_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//4))
+        self.screen.blit(pause_text, text_rect)
+        
+        # Get mouse position
+        mouse_pos = pygame.mouse.get_pos()
+        
+        # Draw buttons with hover effect
+        for i, (option, rect) in enumerate(zip(self.options, self.button_rects)):
+            # Check if mouse is hovering over button
+            is_hovered = rect.collidepoint(mouse_pos)
+            if is_hovered:
+                self.hovered = i
+                color = self.hover_color
+            else:
+                color = self.button_color
+            
+            # Create button surface with alpha
+            button_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+            pygame.draw.rect(button_surface, color, button_surface.get_rect(), border_radius=5)
+            self.screen.blit(button_surface, rect)
+            
+            # Draw button text
+            text = self.option_font.render(option, True, self.selected_color if is_hovered else self.text_color)
+            text_rect = text.get_rect(center=rect.center)
+            self.screen.blit(text, text_rect)
+
+    def handle_input(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_pos = pygame.mouse.get_pos()
+            for i, rect in enumerate(self.button_rects):
+                if rect.collidepoint(mouse_pos):
+                    return self.options[i]
+        return None
+
+def handle_pause():
+    """Handle pause menu state and actions"""
+    global paused, running, current_state, keys_collected, game_over, total_pause_time, pause_start_time
+    
+    pause_menu.draw()
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            return False
+            
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                paused = False
+                total_pause_time += datetime.now() - pause_start_time
+                return True
+                
+        action = pause_menu.handle_input(event)
+        if action:
+            if action == 'RESUME':
+                paused = False
+                total_pause_time += datetime.now() - pause_start_time
+            elif action == 'RESTART LEVEL':
+                paused = False
+                game_over = 0
+                keys_collected = 0
+                if hasattr(player, 'stop_sounds'):
+                    player.stop_sounds()
+                if hasattr(camera, 'stop_sounds'):
+                    camera.stop_sounds()
+                camera.cleanup()
+                camera.reset_zoom()
+                keys_group, door, world, moving_enemies, player, ghost = init_level(current_level)
+                camera.start_transition()
+            elif action == 'QUIT TO MENU':
+                # Cleanup current game resources
+                if hasattr(player, 'stop_sounds'):
+                    player.stop_sounds()
+                if hasattr(camera, 'stop_sounds'):
+                    camera.stop_sounds()
+                cleanup_backgrounds()
+                pygame.mixer.stop()  # Stop all sound channels
+                pygame.mixer.music.stop()  # Stop background music
+                pygame.quit()
+
+                # Import and run main menu
+                try:
+                    import MAINMENU
+                    MAINMENU.main()
+                    sys.exit()
+                except ImportError as e:
+                    print(f"Error returning to main menu: {e}")
+                    return False
+    
+    pygame.display.update()
+    return True
+
+def cleanup_game():
+    """Cleanup all game resources"""
+    if hasattr(player, 'stop_sounds'):
+        player.stop_sounds()
+    if hasattr(camera, 'stop_sounds'):
+        camera.stop_sounds()
+    cleanup_backgrounds()
+    pygame.mixer.stop()
+    pygame.mixer.music.stop()
+    pygame.quit()
+
 class DialogueBox:
     def __init__(self, screen):
         self.screen = screen
@@ -927,6 +1196,10 @@ class Ghost(pygame.sprite.Sprite):
             self.rect.height - (collision_margin * 2)
         )
         return collision_rect.colliderect(player.rect)
+    
+def check_level_timer(elapsed_time, time_limit):
+    """Check if the level time limit has been exceeded"""
+    return elapsed_time >= time_limit
 
 class Camera:
     def __init__(self, width, height):
@@ -1201,8 +1474,12 @@ def update_video_background(level):
 def init_game():
     """Initialize video captures and background surfaces"""
     global video_captures, background_surfaces
+    global game_stats, pause_menu
     video_captures = {}
     background_surfaces = {}
+    # Update this line to use EnhancedGameStats instead of GameStats
+    game_stats = EnhancedGameStats(screen)
+    pause_menu = PauseMenu(screen)
     
     for level, bg_data in level_backgrounds.items():
         if bg_data['type'] == 'video':
@@ -1243,7 +1520,6 @@ def cleanup_backgrounds():
         video_captures.clear()
 
 
-# Update create_zoomed_view function to include ghost
 def create_zoomed_view(screen, camera, player, world, keys_group, door, moving_enemies, ghost):
     current_visible_width = int(SCREEN_WIDTH // camera.zoom)
     current_visible_height = int(SCREEN_HEIGHT // camera.zoom)
@@ -1255,7 +1531,7 @@ def create_zoomed_view(screen, camera, player, world, keys_group, door, moving_e
     if current_background:
         view_surface.blit(current_background, (-camera.scroll_x, -camera.scroll_y))
     
-    # Draw all game objects on the zoomed surface
+    # Draw game objects
     for key in keys_group:
         pos = camera.apply_sprite(view_surface, key)
         if (0 <= pos[0] < current_visible_width and 
@@ -1287,14 +1563,15 @@ def create_zoomed_view(screen, camera, player, world, keys_group, door, moving_e
         0 <= player_pos[1] < current_visible_height):
         view_surface.blit(player.image, player_pos)
     
-    # Scale the view surface to fill the screen
+    # Scale and draw the final view
     scaled_surface = pygame.transform.scale(view_surface, (SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.blit(scaled_surface, (0, 0))
     
+    """"
     # Draw HUD elements
     draw_text(f"Level {current_level}", 40, WHITE, 10, 10)
     draw_text(f"Keys: {keys_collected}/{LEVEL_REQUIREMENTS[current_level]}", 40, WHITE, 10, 60)
-
+    """
     
 class CollisionTile:
     def __init__(self, x, y, width, height):
@@ -1469,17 +1746,33 @@ class Player(pygame.sprite.Sprite):
         dx = 0
         dy = 0
         walk_cooldown = 12
-        
+
+        # Check for game over state
         if game_over == -1:
-            # Handle death state
-            if not hasattr(self, '_death_handled'):
-                camera.reset_zoom()  # Reset camera when player dies
-                self._death_handled = True
-                self.stop_sounds()
-            self.image = self.dead_image
-            if self.rect.y > 200:
-                self.rect.y -= 5
-            return game_over
+            # Game over state
+            draw_text('GAME OVER!', 70, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
+            if restart_button.draw(screen):
+                # Reset necessary variables
+                game_over = 0
+                keys_collected = 0
+                
+                # Stop any ongoing sounds
+                if hasattr(player, 'stop_sounds'):
+                    player.stop_sounds()
+                if hasattr(camera, 'stop_sounds'):
+                    camera.stop_sounds()
+                    
+                # Reset camera state
+                camera.cleanup()
+                camera.reset_zoom()
+                camera.start_transition()
+                
+                # Reset the timer when the player restarts
+                global game_start_time
+                game_start_time = time.time()  # Set the timer to the current time
+                
+                # Reinitialize game assets
+                init_game()  # Call the init_game function to reset game assets
             
         # Reset death handling flag when game is restarted
         self._death_handled = False
@@ -1677,13 +1970,12 @@ class World:
 def init_level(level_num):
     global keys_collected, game_start_time, current_level, player, camera, ghost, movement_enabled
     
-    # Initialize variables first
     keys_collected = 0
     current_level = level_num
     
-    if game_start_time is None:
-        game_start_time = time.time()
-    
+    # Reset the timer for the new level
+    game_start_time = time.time()  # Start the timer
+
     # Reset movement state
     movement_enabled = False
     
@@ -1699,10 +1991,7 @@ def init_level(level_num):
     camera.door_zoom = False
     camera.door_zoom_target = None
     camera.reset_on_death = False
-    
-    if game_start_time is None:
-        game_start_time = time.time()
-    
+
     # Initialize level objects
     keys_group = pygame.sprite.Group()
     key_positions = generate_key_positions(level_num)
@@ -1740,7 +2029,6 @@ def init_level(level_num):
     if ground_platforms:
         leftmost = sorted(ground_platforms, key=lambda p: p[0])[0]
         spawn_x = (leftmost[0] + 1) * TILE_SIZE
-        # Adjust spawn height to be just above the platform
         player_height = int(TILE_SIZE * 1.5)  # Match the player's size
         spawn_y = (leftmost[1] * TILE_SIZE) - player_height
     
@@ -1763,7 +2051,7 @@ def init_level(level_num):
 class MovingEnemy(pygame.sprite.Sprite):
     def __init__(self, x, y, direction, boundary_start, boundary_end):
         super().__init__()
-        self.image = pygame.transform.scale(npc_img, (int(TILE_SIZE * 0.8), int(TILE_SIZE * 0.8)))
+        self.image = pygame.transform.scale(npc_img, (int(TILE_SIZE * 1.2), int(TILE_SIZE * 1.2)))
         self.rect = self.image.get_rect()
         self.rect.x = x * TILE_SIZE
         self.rect.y = y * TILE_SIZE
@@ -2042,6 +2330,7 @@ keys_group = pygame.sprite.Group()
 game_over = 0
 current_state = "start_screen"
 movement_enabled = False 
+pause_button = PauseButton(screen)
 
 # Initialize game resources
 init_game()
@@ -2054,11 +2343,30 @@ running = True
 while running:
     clock.tick(fps)
     
-    # Single event handling section
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_ESCAPE] and current_state == "playing" and not game_over:
+        if not paused:
+            paused = True
+            pause_start_time = datetime.now()
+            fade_alpha = 0
+        
+    if paused:
+        if not handle_pause():
+            running = False
+        continue
+    
+    # Handle events in one place
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
             break
+            
+        # Handle pause button click
+        if current_state == "playing" and not paused and pause_button.handle_event(event):
+            paused = True
+            pause_start_time = datetime.now()
+            fade_alpha = 0
+    
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
@@ -2121,13 +2429,45 @@ while running:
                         game_over = -1
                         game_over_fx.play()
                         break
-        
-        # Always update these regardless of movement state
         keys_group.update()
         door.update()
         camera.update(player, keys_collected, door, LEVEL_REQUIREMENTS[current_level])
         create_zoomed_view(screen, camera, player, world, keys_group, door, moving_enemies, ghost)
         
+        # Draw pause button when not paused
+        if not paused:
+            pause_button.draw()
+            
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            
+            # Handle pause button click
+            if not paused and pause_button.handle_event(event):
+                paused = True
+                pause_start_time = datetime.now()
+                fade_alpha = 0
+
+        if game_start_time:
+            current_time = time.time()
+            elapsed_time = current_time - game_start_time
+            if total_pause_time:
+                elapsed_time -= total_pause_time.total_seconds()
+                
+            # Check timer
+            if check_level_timer(elapsed_time, LEVEL_TIME_LIMITS[current_level]):
+                game_over = -1
+                game_over_fx.play()
+            
+            # Draw enhanced game stats (keep only this one)
+            game_stats.draw_stats_panel(
+                current_level,
+                keys_collected,
+                LEVEL_REQUIREMENTS[current_level],
+                elapsed_time,
+                LEVEL_TIME_LIMITS[current_level]
+            )
+
         # Handle collisions and game over
         if game_over == 0:
             # Check deadly collisions
@@ -2240,6 +2580,44 @@ while running:
             keys_collected = 0
             level_times = []
     
+        # Calculate total play time excluding pauses
+        if game_start_time:
+            raw_total_time = datetime.now() - datetime.fromtimestamp(game_start_time)
+            adjusted_total_time = raw_total_time - total_pause_time
+            
+            minutes = int(adjusted_total_time.total_seconds() // 60)
+            seconds = int(adjusted_total_time.total_seconds() % 60)
+            
+            # Create completion stats card
+            completion_card = pygame.Surface((600, 400))
+            completion_card.fill((40, 40, 40))
+            
+            # Draw stats with improved styling
+            title_font = pygame.font.SysFont('Bauhaus 93', 70)
+            stats_font = pygame.font.SysFont('Bauhaus 93', 40)
+            
+            # Title
+            title = title_font.render("GAME COMPLETE!", True, (255, 215, 0))
+            completion_card.blit(title, (300 - title.get_width()//2, 40))
+            
+            # Stats
+            stats = [
+                f"Total Time: {minutes:02d}:{seconds:02d}",
+                f"Keys Collected: {sum(LEVEL_REQUIREMENTS.values())}",
+                f"Levels Completed: 5"
+            ]
+            
+            for i, stat in enumerate(stats):
+                text = stats_font.render(stat, True, WHITE)
+                completion_card.blit(text, (300 - text.get_width()//2, 160 + i * 60))
+            
+            # Draw the card centered on screen
+            screen.blit(completion_card, 
+                    (SCREEN_WIDTH//2 - completion_card.get_width()//2,
+                        SCREEN_HEIGHT//2 - completion_card.get_height()//2))
+    if not running:
+        cleanup_game()
+        break
     pygame.display.update()
 
 cleanup_backgrounds()

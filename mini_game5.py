@@ -1,54 +1,74 @@
 """
 Mini-Game 5: Programming Quiz Battle
-Author: Jessica Ng
-Contributor: Jacobo Testa
-
-A Python-based educational game where players battle against Jacobo the Undead King 
-by matching programming concepts with their definitions. Get matches right to deal 
-damage to Jacobo, but be careful - wrong answers will damage you instead! Win by 
-either depleting Jacobo's health or matching all pairs correctly.
+A Python-based educational game where players battle through two levels of programming concepts.
 """
 
 import pygame 
 import sys
 import random
-from os.path import join
+from os.path import join, exists
+from PIL import Image
+import time
 
 # Start up pygame
 pygame.init()
 
-# Set up the game window - using 2304x1408 for modern displays
+# Set up the game window
 screen_width = 1539
 screen_height = 940
 
-# Scaled game element sizes
-RECT_WIDTH = int(screen_width * 0.13)        # Width of question/answer boxes
-RECT_HEIGHT = int(screen_height * 0.04)      # Height of question/answer boxes
-NUM_PAIRS = 12
-HEALTH_BAR_WIDTH = int(screen_width * 0.13)  # Width of health bars
-HEALTH_BAR_HEIGHT = int(screen_height * 0.02)  # Height of health bars
-CHARACTER_SIZE = int(screen_height * 0.16)   # Size of character sprites
-GAME_AREA_TOP = screen_height * 0.4  # Push gameplay area down
-CHARACTER_Y_OFFSET = int(screen_height * 0.37)  # How far down to place characters
-MARGIN = int(screen_width * 0.02)   # Space between boxes
+# Validate and load fonts with error handling
+def load_game_fonts():
+    try:
+        font_path = 'Minigame5/PRESSSTART2P.ttf'
+        if not exists(font_path):
+            raise FileNotFoundError(f"Font file not found: {font_path}")
+        
+        return {
+            'small': pygame.font.Font(font_path, int(screen_height * 0.010)),
+            'medium': pygame.font.Font(font_path, int(screen_height * 0.025)),
+            'large': pygame.font.Font(font_path, int(screen_height * 0.020)),
+            'xlarge': pygame.font.Font(font_path, int(screen_height * 0.050))
+        }
+    except Exception as e:
+        print(f"Error loading fonts: {e}")
+        # Fallback to system font
+        return {
+            'small': pygame.font.SysFont(None, int(screen_height * 0.010)),
+            'medium': pygame.font.SysFont(None, int(screen_height * 0.025)),
+            'large': pygame.font.SysFont(None, int(screen_height * 0.020)),
+            'xlarge': pygame.font.SysFont(None, int(screen_height * 0.050))
+        }
 
-# Basic colors we'll use
+game_fonts = load_game_fonts()
+
+# Scaled game element sizes
+RECT_WIDTH = int(screen_width * 0.2)
+RECT_HEIGHT = int(screen_height * 0.05)
+HEALTH_BAR_WIDTH = int(screen_width * 0.19)
+HEALTH_BAR_HEIGHT = int(screen_height * 0.03)
+MARGIN = int(screen_width * 0.02)
+
+# Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-GRAY = (200, 200, 200)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
-GOLD = (212, 175, 55)
+GRAY = (40, 40, 40)
+SOFT_GREEN = (100, 200, 100)
+DARK_RED = (200, 50, 50)
+GOLD = (255, 215, 0)
+PURPLE_GLOW_COLOR = (128, 0, 128, 150)
 
-# Programming questions for the quiz
-questions = [
+# Split questions into two levels
+questions_level1 = [
     "What is Python?", 
     "What is a variable?", 
     "What is a function?", 
     "What is a loop?", 
     "What is a list?", 
-    "What is inheritance?", 
+    "What is inheritance?"
+]
+
+questions_level2 = [
     "What is a class?", 
     "What is debugging?",
     "What is an integer?",
@@ -57,14 +77,17 @@ questions = [
     "What is an algorithm?"
 ]
 
-# Matching answers - order matches questions
-answers = [
+# Split answers into two levels
+answers_level1 = [
     "A programming language",
     "A container for data",
     "A reusable block of code",
     "Repeats a block of code",
     "An ordered collection",
-    "A way to inherit attributes",
+    "A way to inherit attributes"
+]
+
+answers_level2 = [
     "A blueprint for objects",
     "Finding and fixing errors",
     "A whole number value",
@@ -73,274 +96,384 @@ answers = [
     "Step-by-step problem solution"
 ]
 
+def validate_assets():
+    """Validate all required game assets exist"""
+    required_assets = [
+        'Minigame5/Jacobo Background.png',
+        'Minigame5/Jacobo Fast.gif',
+        'Minigame5/Jacobo Slow.gif',
+        'Minigame5/Jacobo Inst1.gif',
+        'Minigame5/Jacobo Inst2.gif',
+        'Minigame5/Jacobo Win.gif',
+        'Minigame5/Jacobo Lost.gif'
+    ]
+    
+    missing_assets = [asset for asset in required_assets if not exists(asset)]
+    if missing_assets:
+        raise FileNotFoundError(f"Missing required assets: {missing_assets}")
+
+def play_gif_sequence(screen, gif_path, duration, background_path=None):
+    """Play a GIF with improved error handling and frame timing"""
+    try:
+        if not exists(gif_path):
+            raise FileNotFoundError(f"GIF file not found: {gif_path}")
+        
+        # Load and prepare background if provided
+        bg = None
+        if background_path:
+            if not exists(background_path):
+                raise FileNotFoundError(f"Background file not found: {background_path}")
+            bg = pygame.image.load(background_path)
+            bg = pygame.transform.scale(bg, (screen_width, screen_height))
+            screen.blit(bg, (0, 0))
+            pygame.display.flip()
+        
+        # Load and process GIF frames
+        with Image.open(gif_path) as gif:
+            frames = []
+            for frame_idx in range(gif.n_frames):
+                gif.seek(frame_idx)
+                frame_surface = pygame.image.fromstring(
+                    gif.convert('RGBA').tobytes(), gif.size, 'RGBA')
+                frame_surface = pygame.transform.scale(frame_surface, (screen_width, screen_height))
+                frames.append(frame_surface)
+
+        start_time = time.time()
+        frame_duration = duration / len(frames)
+        
+        while time.time() - start_time < duration:
+            current_time = time.time() - start_time
+            frame_index = int(current_time / frame_duration) % len(frames)
+            
+            if background_path:
+                screen.blit(bg, (0, 0))
+            screen.blit(frames[frame_index], (0, 0))
+            pygame.display.flip()
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return False
+            
+            pygame.time.Clock().tick(60)
+            
+    except Exception as e:
+        print(f"Error playing GIF sequence: {e}")
+        return False
+    
+    return True
+
+def create_glow_surface(width, height, color, alpha=100):
+    """Create a surface with a glowing effect"""
+    glow = pygame.Surface((width + 10, height + 10), pygame.SRCALPHA)
+    pygame.draw.rect(glow, (*color, alpha), (5, 5, width, height), border_radius=10)
+    return glow
+
 def generate_random_positions(num_rects):
-    cols = 6
-    rows = (num_rects * 2 + cols - 1) // cols
+    """Generate positions for two columns of rectangles"""
+    cols = 2
+    rows = num_rects
     
     total_width = cols * (RECT_WIDTH + MARGIN)
     total_height = rows * (RECT_HEIGHT + MARGIN)
     
     start_x = (screen_width - total_width) // 2
-    start_y = GAME_AREA_TOP + MARGIN + int(screen_height * 0.16)
+    start_y = screen_height * 0.25
     
-    all_positions = []
+    left_positions = []
     for row in range(rows):
-        for col in range(cols):
-            x = start_x + col * (RECT_WIDTH + MARGIN)
-            y = start_y + row * (RECT_HEIGHT + MARGIN)
-            if len(all_positions) < num_rects * 2:
-                all_positions.append((x, y))
+        x = start_x
+        y = start_y + row * (RECT_HEIGHT + MARGIN * 2)
+        left_positions.append((x, y))
     
-    random.shuffle(all_positions)
-    return all_positions
+    right_positions = []
+    for row in range(rows):
+        x = start_x + RECT_WIDTH + MARGIN * 2
+        y = start_y + row * (RECT_HEIGHT + MARGIN * 2)
+        right_positions.append((x, y))
+    
+    random.shuffle(right_positions)
+    return left_positions + right_positions
 
 def draw_text_in_rect(screen, text, rect):
-    """Handle text wrapping inside our boxes"""
-    font = pygame.font.Font(None, int(screen_height * 0.025))
+    """Handle text wrapping inside boxes"""
+    font = game_fonts['small']
     words = text.split()
     lines = []
     current_line = words[0]
     
-    # Split text into lines that fit
     for word in words[1:]:
         test_line = current_line + " " + word
-        if font.size(test_line)[0] <= rect.width - 10:
+        if font.size(test_line)[0] <= rect.width - 20:
             current_line = test_line
         else:
             lines.append(current_line)
             current_line = word
     lines.append(current_line)
     
-    # Center all lines vertically
     line_height = font.get_linesize()
     total_height = line_height * len(lines)
     current_y = rect.centery - (total_height / 2)
     
-    # Draw each line
     for line in lines:
-        text_surface = font.render(line, True, BLACK)
+        text_surface = font.render(line, True, WHITE)
         text_rect = text_surface.get_rect(centerx=rect.centerx, y=current_y)
         screen.blit(text_surface, text_rect)
         current_y += line_height
 
-def draw_character(screen, x, y, image):
-    """Place a character sprite on screen"""
-    char_rect = pygame.Rect(x - CHARACTER_SIZE//2, y, CHARACTER_SIZE, CHARACTER_SIZE)
-    screen.blit(image, char_rect)
-    return char_rect
-
 def draw_health_bar(screen, x, y, health, max_health=100):
-    """Draw a health bar with current/max health"""
+    """Draw a health bar with glow effect"""
     bar_rect = pygame.Rect(x - HEALTH_BAR_WIDTH//2, y, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT)
     health_width = (health / max_health) * HEALTH_BAR_WIDTH
     
-    # Red background, green for current health
-    pygame.draw.rect(screen, RED, bar_rect)
-    pygame.draw.rect(screen, GREEN, (bar_rect.x, bar_rect.y, health_width, HEALTH_BAR_HEIGHT))
+    if health > 0:
+        glow_color = SOFT_GREEN if health > 50 else DARK_RED
+        glow = create_glow_surface(health_width, HEALTH_BAR_HEIGHT, glow_color)
+        screen.blit(glow, (bar_rect.x - 5, bar_rect.y - 5))
+    
+    pygame.draw.rect(screen, GRAY, bar_rect)
+    if health > 0:
+        health_color = SOFT_GREEN if health > 50 else DARK_RED
+        pygame.draw.rect(screen, health_color, (bar_rect.x, bar_rect.y, health_width, HEALTH_BAR_HEIGHT))
     pygame.draw.rect(screen, WHITE, bar_rect, 2)
     
-    # Show health percentage
-    font = pygame.font.Font(None, int(screen_height * 0.025))
-    health_text = font.render(f"{health}%", True, WHITE)
-    text_rect = health_text.get_rect(midtop=(x, y - int(screen_height * 0.026)))
+    health_text = game_fonts['medium'].render(f"{int(health)}%", True, WHITE)
+    text_rect = health_text.get_rect(midtop=(x, y - 30))
     screen.blit(health_text, text_rect)
 
 def draw_feedback(screen, message, color):
-    font = pygame.font.Font(None, int(screen_height * 0.05))
-    text = font.render(message, True, color)
-    text_rect = text.get_rect(center=(screen_width // 2, CHARACTER_Y_OFFSET - int(screen_height * 0.053)))
+    """Draw feedback message with glow effect"""
+    text = game_fonts['large'].render(message, True, color)
+    text_rect = text.get_rect(center=(screen_width // 2, screen_height * 0.17))
+    
+    glow = create_glow_surface(text_rect.width + 20, text_rect.height + 10, color, 50)
+    screen.blit(glow, (text_rect.x - 10, text_rect.y - 5))
     screen.blit(text, text_rect)
 
-def match_game():
-    """Main game function - runs the matching quiz battle"""
-    # Set up the game window
-    screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Battle Against Jacobo the Undead King")
+def draw_timer(screen, time_left, total_time):
+    """Draw countdown timer with color gradient"""
+    timer_width = int(screen_width * 0.15)
+    timer_height = int(screen_height * 0.02)
+    timer_x = screen_width - timer_width - 40
+    timer_y = 100
+               
     
-    # Load in all our images
-    try:
-        background = pygame.image.load('Minigame5/jessbackground.png')
-        background = pygame.transform.scale(background, (screen_width, screen_height))
-    except:
-        # If no background, use a dark gray
-        background = pygame.Surface((screen_width, screen_height))
-        background.fill((50, 50, 50))
+    pygame.draw.rect(screen, GRAY, (timer_x, timer_y, timer_width, timer_height))
     
-    # Load character sprites
-    try:
-        hero_image = pygame.image.load('Minigame5/hero.png')
-        hero_image = pygame.transform.scale(hero_image, (CHARACTER_SIZE, CHARACTER_SIZE))
-    except:
-        # Backup blue rectangle if image missing
-        hero_image = pygame.Surface((CHARACTER_SIZE, CHARACTER_SIZE))
-        hero_image.fill(BLUE)
+    time_ratio = max(0, min(time_left / total_time, 1))
+    time_width = int(timer_width * time_ratio)
+    
+    time_color = (
+        int(255 * (1 - time_ratio)),
+        int(255 * time_ratio),
+        0
+    )
+    
+    pygame.draw.rect(screen, time_color, (timer_x, timer_y, time_width, timer_height))
+    pygame.draw.rect(screen, WHITE, (timer_x, timer_y, timer_width, timer_height), 2)
+    
+    time_text = game_fonts['medium'].render(f"{int(time_left)}s", True, WHITE)
+    text_rect = time_text.get_rect(center=(timer_x + timer_width // 2, timer_y - 25))
+    screen.blit(time_text, text_rect)
 
-    try:
-        jacobo_image = pygame.image.load('Minigame5/jacobo.png')
-        jacobo_image = pygame.transform.scale(jacobo_image, (CHARACTER_SIZE, CHARACTER_SIZE))
-    except:
-        # Backup red rectangle if image missing
-        jacobo_image = pygame.Surface((CHARACTER_SIZE, CHARACTER_SIZE))
-        jacobo_image.fill(RED)
+def run_level(screen, level_num, questions, answers, time_limit, background):
+    """Run a single level of the game"""
+    start_time = time.time()
+    positions = generate_random_positions(len(questions))
     
-    # Set up the question/answer grid
-    positions = generate_random_positions(NUM_PAIRS)
-    
-    # Mix up questions and answers
-    question_answer_pairs = list(zip(questions, answers))
-    random.shuffle(question_answer_pairs)
-    shuffled_questions, shuffled_answers = zip(*question_answer_pairs)
-    
-    # Create all the question boxes
     left_rectangles = [{'rect': pygame.Rect(pos[0], pos[1], RECT_WIDTH, RECT_HEIGHT),
-                        'text': shuffled_questions[i], 
+                        'text': questions[i], 
                         'matched': False,
-                        'answer': shuffled_answers[i]} 
-                       for i, pos in enumerate(positions[:NUM_PAIRS])]
+                        'answer': answers[i]} 
+                    for i, pos in enumerate(positions[:len(questions)])]
     
-    # Create all the answer boxes
     right_rectangles = [{'rect': pygame.Rect(pos[0], pos[1], RECT_WIDTH, RECT_HEIGHT),
-                         'text': shuffled_answers[i], 
-                         'matched': False} 
-                        for i, pos in enumerate(positions[NUM_PAIRS:])]
+                        'text': answers[i], 
+                        'matched': False} 
+                        for i, pos in enumerate(positions[len(questions):])]
     
-    # Position the characters
-    jacobo_pos = (screen_width // 4, CHARACTER_Y_OFFSET)
-    hero_pos = (3 * screen_width // 4, CHARACTER_Y_OFFSET)
-    
-    # Game state variables
-    selected_left = None  # Currently selected question
-    selected_right = None  # Currently selected answer
-    matched_pairs = 0     # How many correct matches made
-    connections = []      # Lines showing matches
-    feedback_message = "Match the questions with their answers!"
-    feedback_color = WHITE
+    selected_left = None
+    selected_right = None
+    matched_pairs = 0
+    connections = []
+    feedback_message = f"Level {level_num}: Match the pairs!"
+    feedback_color = GOLD
     feedback_timer = pygame.time.get_ticks()
-    hero_health = 100
-    jacobo_health = 100
+    player_health = 100
+    opponent_health = 100
     game_over = False
     
-    # Game loop
+    damage_per_hit = 100 // (len(questions) + 2)
     clock = pygame.time.Clock()
-    running = True
     
-    while running:
-        # Draw background
+    while True:
+        current_time = time.time()
+        time_left = max(0, time_limit - (current_time - start_time))
+        
         screen.blit(background, (0, 0))
+        draw_timer(screen, time_left, time_limit)
         
-        # Draw characters and health bars
-        jacobo_rect = draw_character(screen, jacobo_pos[0], jacobo_pos[1], jacobo_image)
-        hero_rect = draw_character(screen, hero_pos[0], hero_pos[1], hero_image)
+        draw_health_bar(screen, screen_width * 0.12, screen_height * 0.4, player_health)
+        draw_health_bar(screen, screen_width * 0.88, screen_height * 0.4, opponent_health)
         
-        # Draw character names
-        font = pygame.font.Font(None, int(screen_height * 0.038))
-        hero_label = font.render("Hero", True, WHITE)
-        jacobo_label = font.render("Jacobo the Undead King", True, WHITE)
-        screen.blit(jacobo_label, (jacobo_pos[0] - jacobo_label.get_width()//2, jacobo_pos[1] - int(screen_height * 0.032)))
-        screen.blit(hero_label, (hero_pos[0] - hero_label.get_width()//2, hero_pos[1] - int(screen_height * 0.032)))
-        
-        # Draw health bars
-        draw_health_bar(screen, jacobo_pos[0], jacobo_pos[1] - int(screen_height * 0.064), jacobo_health)
-        draw_health_bar(screen, hero_pos[0], hero_pos[1] - int(screen_height * 0.064), hero_health)
-        
-        # Handle mouse and keyboard input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                pygame.quit()
+                return None
             
-            # Handle matching attempts
             if not game_over and event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
                 
-                # First click - select a question
                 if selected_left is None:
                     for i, rect_info in enumerate(left_rectangles):
                         if rect_info['rect'].collidepoint(mouse_pos) and not rect_info['matched']:
                             selected_left = i
-                            feedback_message = "Now select an answer"
-                            feedback_color = WHITE
+                            feedback_message = "Now select the matching definition"
+                            feedback_color = GOLD
                             feedback_timer = pygame.time.get_ticks()
                             break
                 
-                # Second click - select an answer and check if correct
                 elif selected_right is None:
                     for i, rect_info in enumerate(right_rectangles):
                         if rect_info['rect'].collidepoint(mouse_pos) and not rect_info['matched']:
                             selected_right = i
                             
-                            # Check if match is correct
                             if right_rectangles[selected_right]['text'] == left_rectangles[selected_left]['answer']:
-                                # Correct match - damage Jacobo
-                                jacobo_health = max(0, jacobo_health - 8)
-                                feedback_message = "Correct match! Jacobo takes damage!"
-                                feedback_color = GREEN
+                                opponent_health = max(0, opponent_health - damage_per_hit)
+                                feedback_message = "Correct! Jacobo takes damage!"
+                                feedback_color = SOFT_GREEN
                                 left_rectangles[selected_left]['matched'] = True
                                 right_rectangles[selected_right]['matched'] = True
                                 matched_pairs += 1
                                 connections.append((left_rectangles[selected_left]['rect'].center,
-                                                 right_rectangles[selected_right]['rect'].center,
-                                                 GREEN))
+                                                right_rectangles[selected_right]['rect'].center,
+                                                SOFT_GREEN))
+                                
+                                left_rectangles[selected_left]['glow'] = PURPLE_GLOW_COLOR
+                                right_rectangles[selected_right]['glow'] = PURPLE_GLOW_COLOR
                             else:
-                                # Wrong match - take damage
-                                hero_health = max(0, hero_health - 8)
+                                player_health = max(0, player_health - damage_per_hit)
                                 feedback_message = "Wrong match! You take damage!"
-                                feedback_color = RED
+                                feedback_color = DARK_RED
                                 connections.append((left_rectangles[selected_left]['rect'].center,
-                                                 right_rectangles[selected_right]['rect'].center,
-                                                 RED))
+                                                right_rectangles[selected_right]['rect'].center,
+                                                DARK_RED))
                             
                             feedback_timer = pygame.time.get_ticks()
                             selected_left = None
                             selected_right = None
         
-        # Draw connection lines between matches
-        for connection in connections:
-            pygame.draw.line(screen, connection[2], connection[0], connection[1], 2)
+        # Draw connections
+        for start, end, color in connections:
+            pygame.draw.line(screen, (*color, 50), start, end, 6)
+            pygame.draw.line(screen, color, start, end, 2)
         
-        # Draw all boxes
+        # Draw boxes
         for rect_info in left_rectangles + right_rectangles:
-            color = GREEN if rect_info['matched'] else WHITE
-            pygame.draw.rect(screen, color, rect_info['rect'])
-            pygame.draw.rect(screen, BLACK, rect_info['rect'], 2)
+            if rect_info['matched']:
+                glow_color = rect_info.get('glow', SOFT_GREEN)  # Use purple glow if set, otherwise default to green
+                glow = create_glow_surface(RECT_WIDTH, RECT_HEIGHT, glow_color[:3], glow_color[3])
+                screen.blit(glow, (rect_info['rect'].x - 5, rect_info['rect'].y - 5))
+            pygame.draw.rect(screen, GRAY, rect_info['rect'])
+            pygame.draw.rect(screen, WHITE, rect_info['rect'], 2)
             draw_text_in_rect(screen, rect_info['text'], rect_info['rect'])
         
-        # Highlight selected question
         if selected_left is not None:
-            pygame.draw.rect(screen, BLUE, left_rectangles[selected_left]['rect'], 3)
+            glow = create_glow_surface(RECT_WIDTH, RECT_HEIGHT, GOLD)
+            screen.blit(glow, (left_rectangles[selected_left]['rect'].x - 5, 
+                            left_rectangles[selected_left]['rect'].y - 5))
         
-        # Show feedback messages
         if feedback_message:
             draw_feedback(screen, feedback_message, feedback_color)
             if pygame.time.get_ticks() - feedback_timer > 2000:
                 feedback_message = ""
         
-        # Check if game is over
+        # Check end conditions
         if not game_over:
-            if hero_health <= 0:
+            if time_left <= 0:
                 game_over = True
-                feedback_message = "You have been defeated by Jacobo!"
-                feedback_color = RED
-            elif jacobo_health <= 0 or matched_pairs == NUM_PAIRS:
+                feedback_message = "Time's up!"
+                feedback_color = DARK_RED
+            elif player_health <= 0:
                 game_over = True
-                feedback_message = "You have defeated Jacobo the Undead King!"
-                feedback_color = GREEN
-        
-        if game_over:
-            overlay = pygame.Surface((screen_width, screen_height))
-            overlay.fill(BLACK)
-            overlay.set_alpha(128)
-            screen.blit(overlay, (0, 0))
-            
-            font = pygame.font.Font(None, int(screen_height * 0.079))
-            text = font.render(feedback_message, True, feedback_color)
-            text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2 + int(screen_height * 0.106)))
-            screen.blit(text, text_rect)
+                player_health = 0
+                feedback_message = "You've been defeated!"
+                feedback_color = DARK_RED
+            elif opponent_health <= 0 or matched_pairs == len(questions):
+                game_over = True
+                opponent_health = 0
+                feedback_message = "Level Complete!"
+                feedback_color = SOFT_GREEN
         
         pygame.display.flip()
         clock.tick(60)
+        
+        if game_over:
+            pygame.time.wait(2000)
+            completion_time = time_limit - time_left
+            return {
+                'success': opponent_health <= 0 or matched_pairs == len(questions),
+                'time': completion_time,
+                'health': player_health
+            }
     
-    pygame.quit()
-    return hero_health > 0
+    return None
+
+def match_game():
+    """Main game function with two levels"""
+    try:
+        # Initial setup and asset validation
+        validate_assets()
+        screen = pygame.display.set_mode((screen_width, screen_height))
+        pygame.display.set_caption("Programming Quiz Battle")
+        
+        # Load background with error handling
+        try:
+            background = pygame.image.load('Minigame5/Jacobo Background.png')
+            background = pygame.transform.scale(background, (screen_width, screen_height))
+        except pygame.error as e:
+            print(f"Error loading background: {e}")
+            background = pygame.Surface((screen_width, screen_height))
+            background.fill(GRAY)
+        
+        # Run Level 1
+        level1_results = run_level(screen, 1, questions_level1, answers_level1, 60, background)
+        
+        if level1_results and level1_results['success']:
+            # Play transition based on completion time
+            if level1_results['time'] <= 30:
+                play_gif_sequence(screen, 'Minigame5/Jacobo Fast.gif', 2)
+                time_for_level2 = 45  # Bonus time for fast players
+            else:
+                play_gif_sequence(screen, 'Minigame5/Jacobo Slow.gif', 2)
+                time_for_level2 = 30
+            
+            # Play instruction sequences
+            play_gif_sequence(screen, 'Minigame5/Jacobo Inst1.gif', 2)
+            play_gif_sequence(screen, 'Minigame5/Jacobo Inst2.gif', 2)
+            
+            # Run Level 2
+            level2_results = run_level(screen, 2, questions_level2, answers_level2, 
+                                     time_for_level2, background)
+            
+            if level2_results:
+                # Play final outcome animation
+                if level2_results['success']:
+                    play_gif_sequence(screen, 'Minigame5/Jacobo Win.gif', 3)
+                else:
+                    play_gif_sequence(screen, 'Minigame5/Jacobo Lost.gif', 3)
+        
+        pygame.time.wait(2000)
+        pygame.quit()
+        
+        if level1_results and level2_results:
+            return level1_results['success'] and level2_results['success']
+        return False
+        
+    except Exception as e:
+        print(f"Game error: {e}")
+        pygame.quit()
+        return False
 
 if __name__ == "__main__":
     match_game()
