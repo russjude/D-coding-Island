@@ -19,7 +19,7 @@ target_width = int(monitor_width * SCREEN_SCALE)
 target_height = int(monitor_height * SCREEN_SCALE)
 
 # Load and scale the background
-original_bg = pygame.image.load('Level5.png')
+original_bg = pygame.image.load('Level Data/Level Image/LEVEL5.png')
 bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
 
 # Adjust window size to maintain aspect ratio
@@ -278,7 +278,7 @@ class World:
             (9.9, 33.2, 5, 1.3),
             (19.4, 33.2, 7.3, 1.3),
             (29.4, 33.2, 5.4, 1.3),
-            (36, 33.2, 5.7, 1.3),
+            (36, 33.2, 5.5, 1.3),
             (44, 33.2, 5.3, 1.3)
         ]
         
@@ -319,6 +319,81 @@ class World:
         for tile in self.collision_tiles:
             pygame.draw.rect(screen, (255, 0, 0), tile.rect, 1)
 
+# Add this with other game data at the top
+ENEMY_DATA = [
+            
+
+
+            (0, 4.2, "horizontal", 0, 9.5),
+            (0, 12.5, "horizontal", 0, 11.4),
+
+
+
+
+            (10, 25.7, "horizontal", 10, 18.2),
+
+
+
+            (41, 25.7, "horizontal", 41, 45),
+
+
+
+
+            (16.5, 19, "horizontal", 16.5, 22.3),
+            
+            (38, 19, "horizontal", 38, 42),
+
+
+            (19.8, 12.5, "horizontal", 19.8, 24),
+
+            (34.4, 12.5, "horizontal", 34.4, 39.7),
+            (42.9, 4.3, "horizontal", 42.9, 48.9),
+            (51, 14, "horizontal", 51, 59),
+
+
+            (44, 32.2, "horizontal", 44, 49),
+            (10, 32.2, "horizontal", 10, 14)
+]
+
+class MovingEnemy(pygame.sprite.Sprite):
+    def __init__(self, x, y, direction, boundary_start, boundary_end):
+        super().__init__()
+        self.image = pygame.transform.scale(
+            pygame.image.load('img/skeleton.png'),
+            (int(TILE_SIZE * 0.8), int(TILE_SIZE * 0.8))
+        )
+        self.rect = self.image.get_rect()
+        self.rect.x = x * TILE_SIZE
+        self.rect.y = y * TILE_SIZE
+        self.direction = direction
+        self.speed = 2
+        self.moving_right = True
+        self.boundary_start = boundary_start * TILE_SIZE
+        self.boundary_end = boundary_end * TILE_SIZE
+
+    def update(self):
+        if self.direction == "horizontal":
+            if self.moving_right:
+                self.rect.x += self.speed
+                if self.rect.x >= self.boundary_end:
+                    self.moving_right = False
+                    self.image = pygame.transform.flip(self.image, True, False)
+            else:
+                self.rect.x -= self.speed
+                if self.rect.x <= self.boundary_start:
+                    self.moving_right = True
+                    self.image = pygame.transform.flip(self.image, True, False)
+    
+    def check_collision(self, player):
+        collision_margin = 4
+        collision_rect = pygame.Rect(
+            self.rect.x + collision_margin,
+            self.rect.y + collision_margin,
+            self.rect.width - (collision_margin * 2),
+            self.rect.height - (collision_margin * 2)
+        )
+        return collision_rect.colliderect(player.rect)
+
 class Button():
     def __init__(self, x, y, image):
         self.image = image
@@ -351,6 +426,13 @@ world = World()
 player = Player(100, SCREEN_HEIGHT - 130)
 restart_button = Button(SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 + 100, restart_img)
 
+# Add this line to create enemy group
+moving_enemies = pygame.sprite.Group()
+for enemy_data in ENEMY_DATA:
+    x, y, direction, boundary_start, boundary_end = enemy_data
+    enemy = MovingEnemy(x, y, direction, boundary_start, boundary_end)
+    moving_enemies.add(enemy)
+
 # Game loop
 clock = pygame.time.Clock()
 fps = 60
@@ -363,6 +445,14 @@ while run:
 
     if game_over == 0:
         game_over = player.update(game_over)
+        
+        # Add these lines for enemy updates and collision checks
+        moving_enemies.update()
+        for enemy in moving_enemies:
+            if enemy.check_collision(player):
+                game_over = -1
+                game_over_fx.play()
+                
     elif game_over == -1:
         draw_text('GAME OVER!', pygame.font.SysFont('Bauhaus 93', 70), blue, 
                  (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
@@ -377,7 +467,9 @@ while run:
     
     # Draw the player
     screen.blit(player.image, player.rect)
-
+    
+    # Add this line to draw enemies
+    moving_enemies.draw(screen)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -387,5 +479,3 @@ while run:
                 run = False
 
     pygame.display.update()
-
-pygame.quit()

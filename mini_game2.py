@@ -2,38 +2,44 @@
 mini-game2.py
 
 Primary Author: Russel Rafanan
-Secondary Author: Jessica Ng
+Editor: Jessica Ng
+Enhanced by: Claude
 
 A Python-based word guessing game inspired by Wordle, featuring a programming-themed
-word list. Players have 6 attempts to guess a 5-letter word, with color-coded feedback
-for correct letters and positions. The game includes a graphical interface using Pygame
-with a mountain background and custom title image.
+word list, timer, and GIF feedback system.
 """
 
 import pygame
 import random
+from PIL import Image
+import os
 
 # Initialize Pygame engine
 pygame.init()
 
+# Screen and game constants
 SCREEN_WIDTH = 1539
 SCREEN_HEIGHT = 940
 GRID_SIZE = 6
 WORD_LENGTH = 5
-FONT_SIZE = 50  # Reduced font size
-BOX_SIZE = 80   # Reduced box size
-BOX_SPACING = 10  # Reduced spacing
+FONT_SIZE = 50
+BOX_SIZE = 100
+BOX_SPACING = 15
 BOX_BORDER_RADIUS = 5
 
+# Feedback position constants
+FEEDBACK_X = SCREEN_WIDTH - 420
+FEEDBACK_Y = SCREEN_HEIGHT // 2 - 300
+
 # Color scheme definitions
-BACKGROUND_COLOR = (18, 18, 19)  # Dark theme background
-EMPTY_BOX_COLOR = (58, 58, 60)   # Unfilled box color
-BORDER_COLOR = (58, 58, 60)      # Box outline color
-FILLED_BOX_COLOR = (58, 58, 60)  # Box color for entered letters
-GREEN = (83, 141, 78)   # Indicates correct letter in correct position
-YELLOW = (181, 159, 59) # Indicates correct letter in wrong position
-GRAY = (58, 58, 60)     # Indicates letter not in word
-TEXT_COLOR = (255, 255, 255)  # Letter color
+BACKGROUND_COLOR = (18, 18, 19)
+EMPTY_BOX_COLOR = (58, 58, 60)
+BORDER_COLOR = (58, 58, 60)
+FILLED_BOX_COLOR = (58, 58, 60)
+GREEN = (83, 141, 78)
+YELLOW = (181, 159, 59)
+GRAY = (58, 58, 60)
+TEXT_COLOR = (255, 255, 255)
 
 # Programming-themed word bank
 word_list = [
@@ -54,65 +60,94 @@ word_list = [
     "PROTO", "RESET", "ROUND", "SCALE", "THROW"
 ]
 
-class FeedbackMessage:
-    """Handles the display of game messages with visual effects"""
-    def __init__(self, text, duration, color=TEXT_COLOR):
-        self.text = text
-        self.start_time = pygame.time.get_ticks()
+class GifPlayer:
+    def __init__(self, gif_path):
+        self.frames = []
+        self.current_frame = 0
+        self.last_update = 0
+        self.frame_duration = 100  # Default duration between frames in ms
+        
+        # Load GIF frames using Pillow
+        gif = Image.open(gif_path)
+        try:
+            while True:
+                frame = gif.copy()
+                frame = pygame.image.fromstring(
+                    frame.convert('RGBA').tobytes(), frame.size, 'RGBA')
+                self.frames.append(frame)
+                gif.seek(gif.tell() + 1)
+        except EOFError:
+            pass
+
+    def update(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_update > self.frame_duration:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.last_update = current_time
+
+    def get_current_frame(self):
+        return self.frames[self.current_frame]
+
+class FeedbackSystem:
+    def __init__(self):
+        self.gifs = {
+            'welcome': GifPlayer('Minigame2/Russ Welcome.gif'),
+            'instructions': GifPlayer('Minigame2/Russ Instructions.gif'),
+            'time': GifPlayer('Minigame2/Russ Time.gif'),
+            'short': GifPlayer('Minigame2/Russ Short.gif'),
+            'won': GifPlayer('Minigame2/Russ Won.gif'),
+            'lost': GifPlayer('Minigame2/Russ Lost.gif')
+        }
+        self.current_gif = None
+        self.display_time = 0
+
+    def show_gif(self, gif_name, duration=3000):
+        self.current_gif = self.gifs[gif_name]
+        self.display_time = pygame.time.get_ticks() + duration
+
+    def update(self, screen):
+        if self.current_gif and pygame.time.get_ticks() < self.display_time:
+            self.current_gif.update()
+            frame = self.current_gif.get_current_frame()
+            screen.blit(frame, (FEEDBACK_X, FEEDBACK_Y))
+
+class Timer:
+    def __init__(self, duration):
         self.duration = duration
-        self.color = color
-        self.active = True
-        self.outline_thickness = 2
+        self.start_time = pygame.time.get_ticks()
+        self.is_running = True
+        self.thirty_second_warning_shown = False
 
-    def should_display(self):
-        """Check if message should still be shown based on duration"""
-        if not self.active:
-            return False
-        elapsed = pygame.time.get_ticks() - self.start_time
-        return elapsed < self.duration
+    def get_time_left(self):
+        if not self.is_running:
+            return 0
+        elapsed = (pygame.time.get_ticks() - self.start_time) // 1000
+        remaining = max(0, self.duration - elapsed)
+        return remaining
 
-    def get_darker_shade(self, color, factor=0.6):
-        """Create outline color by darkening the main color"""
-        return tuple(int(c * factor) for c in color)
+    def is_finished(self):
+        return self.get_time_left() <= 0
 
-    def draw_outlined_text(self, screen, font, pos):
-        """Draw text with outline effect for better visibility"""
-        outline_color = self.get_darker_shade(self.color if self.color != TEXT_COLOR else (128, 128, 128))
-        text_surface = font.render(self.text, True, self.color)
-        text_rect = text_surface.get_rect(center=pos)
+    def stop(self):
+        self.is_running = False
 
-        # Apply outline effect using multiple offset positions
-        outline_positions = [
-            (-self.outline_thickness, -self.outline_thickness),
-            (-self.outline_thickness, self.outline_thickness),
-            (self.outline_thickness, -self.outline_thickness),
-            (self.outline_thickness, self.outline_thickness),
-            (-self.outline_thickness, 0),
-            (self.outline_thickness, 0),
-            (0, -self.outline_thickness),
-            (0, self.outline_thickness),
-        ]
+    def draw(self, screen, font):
+        if self.is_running:
+            seconds_left = self.get_time_left()
+            minutes = seconds_left // 60
+            seconds = seconds_left % 60
+            time_text = f"{minutes}:{seconds:02d}"
+            text_surface = font.render(time_text, True, TEXT_COLOR)
+            screen.blit(text_surface, (20, 20))
 
-        for dx, dy in outline_positions:
-            outline_rect = text_rect.copy()
-            outline_rect.x += dx
-            outline_rect.y += dy
-            outline_surface = font.render(self.text, True, outline_color)
-            screen.blit(outline_surface, outline_rect)
+    def should_show_warning(self):
+        seconds_left = self.get_time_left()
+        if seconds_left <= 30 and not self.thirty_second_warning_shown:
+            self.thirty_second_warning_shown = True
+            return True
+        return False
 
-        screen.blit(text_surface, text_rect)
-
-    def draw(self, screen, font, y_position):
-        """Draw the message if it's still within its display duration"""
-        if self.should_display():
-            self.draw_outlined_text(screen, font, (SCREEN_WIDTH // 2, y_position))
-
-def draw_title():
-    """Display game title image centered at the top"""
-    title_rect = title_image.get_rect(center=(SCREEN_WIDTH // 2, 100))  # Moved up
-    screen.blit(title_image, title_rect)
-
-def draw_box(x, y, color, letter='', border_color=None):
+def draw_box(screen, game_font, x, y, color, letter='', border_color=None):
     """Draw a letter box with specified styling and content"""
     box_rect = pygame.Rect(x, y, BOX_SIZE, BOX_SIZE)
     pygame.draw.rect(screen, color, box_rect, border_radius=BOX_BORDER_RADIUS)
@@ -150,10 +185,10 @@ def get_letter_colors(guess, secret):
 
     return colors
 
-def draw_grid(guesses, current_guess):
+def draw_grid(screen, game_font, guesses, current_guess, secret_word):
     """Render the game grid with all guesses and current input"""
     start_x = (SCREEN_WIDTH - (WORD_LENGTH * (BOX_SIZE + BOX_SPACING))) // 2
-    start_y = 250  # Moved up
+    start_y = 175
 
     # Draw previous guesses
     for i in range(GRID_SIZE):
@@ -164,9 +199,9 @@ def draw_grid(guesses, current_guess):
             if i < len(guesses):
                 letter = guesses[i][j]
                 colors = get_letter_colors(guesses[i], secret_word)
-                draw_box(x, y, colors[j], letter)
+                draw_box(screen, game_font, x, y, colors[j], letter)
             else:
-                draw_box(x, y, BACKGROUND_COLOR, border_color=BORDER_COLOR)
+                draw_box(screen, game_font, x, y, BACKGROUND_COLOR, border_color=BORDER_COLOR)
 
     # Draw current guess
     current_row = len(guesses)
@@ -175,58 +210,50 @@ def draw_grid(guesses, current_guess):
             x = start_x + j * (BOX_SIZE + BOX_SPACING)
             y = start_y + current_row * (BOX_SIZE + BOX_SPACING)
             if j < len(current_guess):
-                draw_box(x, y, FILLED_BOX_COLOR, current_guess[j])
+                draw_box(screen, game_font, x, y, FILLED_BOX_COLOR, current_guess[j])
             else:
-                draw_box(x, y, BACKGROUND_COLOR, border_color=BORDER_COLOR)
+                draw_box(screen, game_font, x, y, BACKGROUND_COLOR, border_color=BORDER_COLOR)
 
 def main():
-    """Main game loop and initialization"""
-    global secret_word, screen, game_font, title_image
-    
     # Initialize display window
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Wordle")
 
-    # Load and scale background and title images
-    background_image = pygame.image.load("Minigame2/mountainbg.png")
+    # Load custom font and background
+    game_font = pygame.font.Font('Minigame2/PRESSSTART2P.ttf', FONT_SIZE)
+    background_image = pygame.image.load("Minigame2/Palak Minigame (7).png")
     background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
-    
-    title_image = pygame.image.load("Minigame2/spelltodecode.png")
-    title_image = pygame.transform.scale(title_image, (600, 150))
 
-    # Set up game font
-    game_font = pygame.font.SysFont('Arial Bold', FONT_SIZE)
-
-    # Initialize game state
-    secret_word = "RUSSS"
-    print(f"Secret word: {secret_word}")  # Development testing only
+    # Initialize game components
+    secret_word = random.choice(word_list)
+    timer = Timer(90)  # 90 seconds = 1 minute and 30 seconds
+    feedback = FeedbackSystem()
     
     running = True
     guesses = []
     current_guess = ""
     game_over = False
     won = False
-    feedback_messages = []
-    play_again_message = None
+    
+    # Show welcome and instructions at start
+    feedback.show_gif('welcome', 3000)
+    feedback.show_gif('instructions', 3000)
 
-    # Main game loop
     while running:
-        screen.blit(background_image, (0,0))
-        draw_title()
-        draw_grid(guesses, current_guess)
+        screen.blit(background_image, (0, 0))
+        draw_grid(screen, game_font, guesses, current_guess, secret_word)
+        timer.draw(screen, game_font)
+        feedback.update(screen)
 
-        # Update and display feedback messages
-        y_position = SCREEN_HEIGHT - 150
-        for message in feedback_messages[:]:
-            message.draw(screen, game_font, y_position)
-            if not message.should_display():
-                feedback_messages.remove(message)
-            y_position -= 60
+        # Check timer warning
+        if timer.should_show_warning():
+            feedback.show_gif('time')
 
-        if play_again_message:
-            play_again_message.draw(screen, game_font, SCREEN_HEIGHT - 100)
+        # Check timer finished
+        if timer.is_finished() and not game_over:
+            game_over = True
+            feedback.show_gif('lost')
 
-        # Handle game events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -234,35 +261,37 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if game_over:
                     if event.key == pygame.K_SPACE:
-                        # Reset game state for new round
+                        # Reset game state
                         secret_word = random.choice(word_list)
+                        timer = Timer(90)
                         guesses = []
                         current_guess = ""
                         game_over = False
                         won = False
-                        feedback_messages = []
-                        play_again_message = None
-                        print(f"New secret word: {secret_word}")  # Development testing only
-                elif event.key == pygame.K_RETURN and len(current_guess) == WORD_LENGTH:
-                    # Process completed guess
-                    guesses.append(current_guess)
-                    if current_guess == secret_word:
-                        won = True
-                        game_over = True
-                        feedback_messages.append(FeedbackMessage("Congratulations! You won!", 5000, GREEN))
-                        return True  # Return True when player wins
-                    elif len(guesses) >= GRID_SIZE:
-                        game_over = True
-                        feedback_messages.append(FeedbackMessage(f"Game Over! The word was {secret_word}", 5000))
-                        play_again_message = FeedbackMessage("Press SPACE to play again", float('inf'))
-                    current_guess = ""
+                        feedback.show_gif('welcome')
+                elif event.key == pygame.K_RETURN:
+                    if len(current_guess) < WORD_LENGTH:
+                        feedback.show_gif('short')
+                    elif len(current_guess) == WORD_LENGTH:
+                        guesses.append(current_guess)
+                        if current_guess == secret_word:
+                            won = True
+                            game_over = True
+                            timer.stop()
+                            feedback.show_gif('won')
+                        elif len(guesses) >= GRID_SIZE:
+                            game_over = True
+                            timer.stop()
+                            feedback.show_gif('lost')
+                        current_guess = ""
                 elif event.key == pygame.K_BACKSPACE:
                     current_guess = current_guess[:-1]
                 elif len(current_guess) < WORD_LENGTH and event.unicode.isalpha():
                     current_guess += event.unicode.upper()
-                elif event.key == pygame.K_RETURN and len(current_guess) < WORD_LENGTH:
-                    feedback_messages.append(FeedbackMessage("Word is too short!", 2000))
 
         pygame.display.flip()
+
+    pygame.quit()
+
 if __name__ == "__main__":
     main()

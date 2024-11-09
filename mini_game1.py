@@ -1,18 +1,7 @@
-"""
-mini-game1.py
-
-Primary Author: Palak Lakhani and Jessica Ng
-
-An educational game combining Tic-Tac-Toe with Python programming questions.
-Players must correctly answer programming questions to place their 'X' marks,
-while competing against a computer opponent. Features include a graphical interface,
-automated opponent moves, and immediate feedback on answers. The game includes
-questions about Python operators, basic calculations, and programming concepts.
-"""
-
 import pygame
 import random
 import time
+from PIL import Image
 
 # Initialize game engine
 pygame.init()
@@ -26,57 +15,141 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Decoding Island')
 
 # Define tile size based on background height
-TILE_SIZE = SCREEN_HEIGHT // 36  # 36 is the number of tiles vertically
+TILE_SIZE = SCREEN_HEIGHT // 36
 
-# Load and scale the background for each level
-level_backgrounds = {}
-for i in range(1, 6):  # Assuming you have 5 levels
-    original_bg = pygame.image.load(f'Level Data/Level Image/LEVEL{i}.png')
-    level_backgrounds[i] = pygame.transform.scale(original_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
-
-# You may need to adjust other elements (buttons, player size, etc.) to fit the new resolution
-# For example:
-# start_button = Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2, start_btn)
-# restart_button = Button(SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 + 100, restart_img)
+# Colors
 PALAK_LEVEL_1 = {
-    "blue": (46, 161, 213),      # Player X color
-    "light_green": (205, 215, 191), # Background accent
-    "dark_gray": (37, 34, 41),    # Text and lines
-    "green": (84, 159, 99),      # Player O color
-    "red": (255, 99, 71),        # Winning line
-    "white": (255, 255, 255)     # Input box
+    "blue": (37, 56, 142),
+    "light_green": (205, 215, 191),
+    "dark_gray": (37, 34, 41),
+    "green": (246, 195, 36),
+    "red": (211, 117, 6),
+    "white": (255, 255, 255)
 }
 
-# Game board layout settings
-# Adjust board dimensions and positioning
-BOARD_WIDTH, BOARD_HEIGHT = 500, 500  # Reduced from 700x700
+# Game board layout settings - centered position
+BOARD_WIDTH, BOARD_HEIGHT = 500, 500
 BOARD_TOP_LEFT_X = (SCREEN_WIDTH - BOARD_WIDTH) // 2
-BOARD_TOP_LEFT_Y = 200  # Fixed position from top
+BOARD_TOP_LEFT_Y = 200
 
 # Text rendering setup
-FONT = pygame.font.Font(None, 36)  # Reduced from 48
-QUESTION_FONT = pygame.font.Font(None, 32)  # Reduced from 36
-INPUT_FONT = pygame.font.Font(None, 36)  # Reduced from 48
+FONT_PATH = "Minigame1/Palak minigame img/PRESSSTART2P.ttf"
+FONT = pygame.font.Font(FONT_PATH, 25)
+QUESTION_FONT = pygame.font.Font(FONT_PATH, 17)
+INPUT_FONT = pygame.font.Font(FONT_PATH, 17)
 
 # Load and scale background
-background_image = pygame.image.load("Minigame1/bg.png")
+background_image = pygame.image.load("Minigame1/Palak minigame img/Palak Minigame.png")
 background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-# Dictionary of game state feedback images
-feedback_images = {
-    "first_move": pygame.image.load("Minigame1/firstmove.png"),
-    "click_anywhere": pygame.image.load("Minigame1/clickanywhere.png"),
-    "type_answer": pygame.image.load("Minigame1/typeanswer.png"),
-    "correct": pygame.image.load("Minigame1/correct.png"),
-    "incorrect": pygame.image.load("Minigame1/incorrect.png"),
-    "you_win": pygame.image.load("Minigame1/youwin.png"),
-    "you_lose": pygame.image.load("Minigame1/youlose.png"),
-    "tie": pygame.image.load("Minigame1/tie.png")
-}
+class GIFImage:
+    def __init__(self, filename):
+        try:
+            self.filename = filename
+            self.image = Image.open(filename)
+            self.frames = []
+            self.get_frames()
+            self.cur = 0
+            self.ptime = time.time()
+            self.running = True
+            self.breakpoint = len(self.frames)-1
+            self.startpoint = 0
+            self.reversed = False
+            self.current_frame = 0
+            self.total_frames = len(self.frames)
+            self.time_delta = 1.0 / 30
+            self.last_state = None
+        except Exception as e:
+            print(f"Error loading GIF {filename}: {e}")
+            surface = pygame.Surface((200, 200))
+            surface.fill((100, 100, 100))
+            self.frames = [surface]
+            self.total_frames = 1
+            self.current_frame = 0
+            self.time_delta = 1.0 / 30
 
-# Scale feedback images to smaller size
-for key in feedback_images:
-    feedback_images[key] = pygame.transform.scale(feedback_images[key], (700, 80))  # Reduced from 900x100
+    def get_frames(self):
+        image = self.image
+        
+        if hasattr(image, "palette"):
+            palette = image.palette.getdata()[1]
+        else:
+            palette = None
+        
+        try:
+            while True:
+                if image.mode == 'P':
+                    if palette:
+                        image.putpalette(palette)
+                    converted = image.convert('RGBA')
+                else:
+                    converted = image.convert('RGBA')
+
+                mode = converted.mode
+                size = converted.size
+                data = converted.tobytes()
+                
+                py_image = pygame.image.fromstring(data, size, mode).convert_alpha()
+                py_image = pygame.transform.scale(py_image, (400, 400))
+                
+                self.frames.append(py_image)
+                image.seek(image.tell() + 1)
+        except EOFError:
+            pass
+        except Exception as e:
+            print(f"Error processing frame: {e}")
+            if not self.frames:
+                surface = pygame.Surface((200, 200))
+                surface.fill((100, 100, 100))
+                self.frames = [surface]
+
+    def render(self, screen, pos):
+        if self.running and self.frames:
+            current_time = time.time()
+            if current_time - self.ptime > self.time_delta:
+                self.ptime = current_time
+                self.current_frame = (self.current_frame + 1) % self.total_frames
+            
+            if self.frames:
+                frame = self.frames[self.current_frame]
+                screen.blit(frame, pos)
+
+    def reset(self):
+        self.current_frame = 0
+        self.ptime = time.time()
+
+# Initialize feedback GIFs
+def load_feedback_gifs():
+    gifs = {}
+    gif_paths = {
+        "initial": "Minigame1/Palak minigame img/1-unscreen.gif",
+        "first_move": "Minigame1/Palak minigame img/2-unscreen (1).gif",
+        "click_anywhere": "Minigame1/Palak minigame img/3-unscreen (1).gif",
+        "type_answer": "Minigame1/Palak minigame img/4-unscreen (1).gif",
+        "correct": "Minigame1/Palak minigame img/5-unscreen (1).gif",
+        "incorrect": "Minigame1/Palak minigame img/6-unscreen (1).gif",
+        "you_win": "Minigame1/Palak minigame img/7-unscreen (1).gif",
+        "you_lose": "Minigame1/Palak minigame img/8-unscreen (1).gif",
+        "tie": "Minigame1/Palak minigame img/9-unscreen (1).gif"
+    }
+    
+    for key, path in gif_paths.items():
+        try:
+            gifs[key] = GIFImage(path)
+        except Exception as e:
+            print(f"Failed to load GIF {path}: {e}")
+            surface = pygame.Surface((200, 200))
+            surface.fill((100, 100, 100))
+            gifs[key] = type('DummyGIF', (), {
+                'render': lambda s, screen, pos: screen.blit(surface, pos),
+                'reset': lambda s: None
+            })()
+    
+    return gifs
+
+# Position for feedback GIFs
+FEEDBACK_X = SCREEN_WIDTH - 420
+FEEDBACK_Y = SCREEN_HEIGHT // 2 - 300
 
 # Initialize game board and question bank
 board = [' ' for _ in range(9)]
@@ -95,12 +168,46 @@ questions = [
     ("What is the result of 18 / 3 + 2?", "8.0")
 ]
 
-# Set up display window
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Tic Tac Toe with Quiz")
+class TextInput:
+    def __init__(self, x, y, width, height, font_size=17):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.font = pygame.font.Font(FONT_PATH, font_size)
+        self.text = ""
+        self.max_chars = 20  # Maximum characters allowed
+        self.text_surface = self.font.render("", True, PALAK_LEVEL_1["dark_gray"])
+        
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                return self.text
+            elif event.key == pygame.K_BACKSPACE:
+                self.text = self.text[:-1]
+            else:
+                # Only add new character if within max length and if it will fit in the box
+                if len(self.text) < self.max_chars and event.unicode.isprintable():
+                    test_text = self.text + event.unicode
+                    test_surface = self.font.render(test_text, True, PALAK_LEVEL_1["dark_gray"])
+                    if test_surface.get_width() <= self.rect.width - 40:  # Increased padding for centering
+                        self.text += event.unicode
+            
+            # Update the text surface
+            self.text_surface = self.font.render(self.text, True, PALAK_LEVEL_1["dark_gray"])
+        return None
+
+    def draw(self, screen):
+        # Draw the text box
+        pygame.draw.rect(screen, PALAK_LEVEL_1["white"], self.rect)
+        pygame.draw.rect(screen, PALAK_LEVEL_1["dark_gray"], self.rect, 2)
+        
+        # Center the text both horizontally and vertically
+        if self.text:
+            text_width = self.text_surface.get_width()
+            text_height = self.text_surface.get_height()
+            text_x = self.rect.x + (self.rect.width - text_width) // 2
+            text_y = self.rect.y + (self.rect.height - text_height) // 2
+            screen.blit(self.text_surface, (text_x, text_y))
 
 def draw_winning_line(indices):
-    """Draw a line through winning combination of moves"""
     start_idx, end_idx = indices[0], indices[2]
     start_x = BOARD_TOP_LEFT_X + (start_idx % 3) * BOARD_WIDTH // 3 + BOARD_WIDTH // 6
     start_y = BOARD_TOP_LEFT_Y + (start_idx // 3) * BOARD_HEIGHT // 3 + BOARD_HEIGHT // 6
@@ -108,38 +215,36 @@ def draw_winning_line(indices):
     end_y = BOARD_TOP_LEFT_Y + (end_idx // 3) * BOARD_HEIGHT // 3 + BOARD_HEIGHT // 6
     pygame.draw.line(screen, PALAK_LEVEL_1["red"], (start_x, start_y), (end_x, end_y), 10)
 
-# Modify draw_board function
 def draw_board():
-    """Draw game board grid and current player moves"""
-    # Draw vertical and horizontal grid lines
+    # Draw vertical and horizontal lines with increased thickness
     for row in range(1, 3):
         pygame.draw.line(screen, PALAK_LEVEL_1["dark_gray"], 
                         (BOARD_TOP_LEFT_X, BOARD_TOP_LEFT_Y + row * BOARD_HEIGHT // 3), 
-                        (BOARD_TOP_LEFT_X + BOARD_WIDTH, BOARD_TOP_LEFT_Y + row * BOARD_HEIGHT // 3), 4)  # Reduced line thickness
+                        (BOARD_TOP_LEFT_X + BOARD_WIDTH, BOARD_TOP_LEFT_Y + row * BOARD_HEIGHT // 3), 6)
     for col in range(1, 3):
         pygame.draw.line(screen, PALAK_LEVEL_1["dark_gray"], 
                         (BOARD_TOP_LEFT_X + col * BOARD_WIDTH // 3, BOARD_TOP_LEFT_Y), 
-                        (BOARD_TOP_LEFT_X + col * BOARD_WIDTH // 3, BOARD_TOP_LEFT_Y + BOARD_HEIGHT), 4)
+                        (BOARD_TOP_LEFT_X + col * BOARD_WIDTH // 3, BOARD_TOP_LEFT_Y + BOARD_HEIGHT), 6)
 
-    # Render X's and O's with adjusted sizes
+    # Draw X's and O's with increased thickness
     for i, cell in enumerate(board):
         x = BOARD_TOP_LEFT_X + (i % 3) * BOARD_WIDTH // 3 + BOARD_WIDTH // 6
         y = BOARD_TOP_LEFT_Y + (i // 3) * BOARD_HEIGHT // 3 + BOARD_HEIGHT // 6
         if cell == 'X':
-            pygame.draw.line(screen, PALAK_LEVEL_1["blue"], (x - 25, y - 25), (x + 25, y + 25), 6)  # Reduced size and thickness
-            pygame.draw.line(screen, PALAK_LEVEL_1["blue"], (x + 25, y - 25), (x - 25, y + 25), 6)
+            pygame.draw.line(screen, PALAK_LEVEL_1["blue"], (x - 35, y - 35), (x + 35, y + 35), 15)
+            pygame.draw.line(screen, PALAK_LEVEL_1["blue"], (x + 35, y - 35), (x - 35, y + 35), 15)
         elif cell == 'O':
-            pygame.draw.circle(screen, PALAK_LEVEL_1["green"], (x, y), 30, 6)  # Reduced size and thickness
+            pygame.draw.circle(screen, PALAK_LEVEL_1["green"], (x, y), 40, 15)
 
-def display_feedback_image(image_key):
-    """Display appropriate feedback image based on game state"""
-    if image_key in feedback_images:
-        image = feedback_images[image_key]
-        image_rect = image.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100))  # Adjusted position
-        screen.blit(image, image_rect)
+def display_feedback_gif(gif_key, force_reset=False):
+    if gif_key in feedback_gifs:
+        gif = feedback_gifs[gif_key]
+        if hasattr(gif, 'last_state') and (gif.last_state != gif_key or force_reset):
+            gif.reset()
+            gif.last_state = gif_key
+        gif.render(screen, (FEEDBACK_X, FEEDBACK_Y))
 
 def check_winner(player_symbol):
-    """Check for winning combinations on the board"""
     win_conditions = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
         [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
@@ -151,11 +256,9 @@ def check_winner(player_symbol):
     return False, None
 
 def is_full():
-    """Check if board is completely filled"""
     return ' ' not in board
 
 def player_move(pos):
-    """Process player's attempt to place X on board"""
     x, y = pos
     if BOARD_TOP_LEFT_X <= x < BOARD_TOP_LEFT_X + BOARD_WIDTH and BOARD_TOP_LEFT_Y <= y < BOARD_TOP_LEFT_Y + BOARD_HEIGHT:
         col = (x - BOARD_TOP_LEFT_X) // (BOARD_WIDTH // 3)
@@ -167,7 +270,6 @@ def player_move(pos):
     return False
 
 def computer_move():
-    """Execute random computer move in empty spot"""
     empty_spots = [i for i, spot in enumerate(board) if spot == ' ']
     if empty_spots:
         move = random.choice(empty_spots)
@@ -176,12 +278,10 @@ def computer_move():
     return False
 
 def get_new_question():
-    """Select random question from question bank"""
     question, answer = random.choice(questions)
     return question, answer.lower()
 
 def reset_game():
-    """Initialize new game state"""
     global board
     board = [' ' for _ in range(9)]
     question, answer = get_new_question()
@@ -191,31 +291,75 @@ def reset_game():
         'game_over': False,
         'first_round': True,
         'winning_line': None,
-        'input_text': "",
         'can_place_x': True,
-        'current_feedback': "first_move",
-        'feedback_time': pygame.time.get_ticks()
+        'current_feedback': "initial",
+        'feedback_time': pygame.time.get_ticks(),
+        'show_initial': True,
+        'feedback_changed': False
     }
 
 def main():
-    """Main game loop handling game states and user interaction"""
+    global feedback_gifs
+    feedback_gifs = load_feedback_gifs()
+    
     clock = pygame.time.Clock()
     running = True
     game_vars = reset_game()
     FEEDBACK_DURATION = 2000
     END_GAME_DURATION = 3000
+    INITIAL_DURATION = 3000
     end_game_time = None
+    initial_start_time = pygame.time.get_ticks()
+    last_feedback_change = pygame.time.get_ticks()
+
+    # Create text input box
+    text_input = TextInput(
+        BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
+        BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
+        300,
+        35
+    )
+
+    # Draw initial state immediately
+    screen.blit(background_image, (0, 0))
+    draw_board()
+    pygame.display.flip()
 
     while running:
         current_time = pygame.time.get_ticks()
         
-        # Handle game reset timing
+        if game_vars['show_initial']:
+            if current_time - initial_start_time >= INITIAL_DURATION:
+                game_vars['show_initial'] = False
+                game_vars['current_feedback'] = "first_move"
+                game_vars['feedback_changed'] = True
+                last_feedback_change = current_time
+            screen.blit(background_image, (0, 0))
+            draw_board()
+            display_feedback_gif("initial", game_vars['feedback_changed'])
+            pygame.display.flip()
+            clock.tick(60)
+            continue
+
+        # Reset feedback_changed flag after a delay
+        if game_vars['feedback_changed'] and current_time - last_feedback_change >= FEEDBACK_DURATION:
+            game_vars['feedback_changed'] = False
+
         if game_vars['game_over'] and end_game_time is None:
             end_game_time = current_time
+            game_vars['feedback_changed'] = True
+            last_feedback_change = current_time
         
         if end_game_time and current_time - end_game_time >= END_GAME_DURATION:
             game_vars = reset_game()
             end_game_time = None
+            initial_start_time = current_time
+            text_input = TextInput(
+                BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
+                BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
+                300,
+                35
+            )
         
         # Render game elements
         screen.blit(background_image, (0, 0))
@@ -224,47 +368,31 @@ def main():
         if game_vars['winning_line']:
             draw_winning_line(game_vars['winning_line'])
 
-        # Update feedback display based on game state
-        if game_vars['game_over']:
-            display_feedback_image(game_vars['current_feedback'])
-        elif game_vars['first_round']:
-            display_feedback_image("first_move")
-        elif game_vars['can_place_x']:
-            display_feedback_image("click_anywhere")
-        elif current_time - game_vars['feedback_time'] < FEEDBACK_DURATION:
-            display_feedback_image(game_vars['current_feedback'])
-        else:
-            display_feedback_image("type_answer")
-
-        # Display question interface after first move
         if not game_vars['first_round'] and not game_vars['game_over']:
-            question_surface = QUESTION_FONT.render(f"Question: {game_vars['current_question']}", True, PALAK_LEVEL_1["dark_gray"])
-            question_rect = question_surface.get_rect(center=(SCREEN_WIDTH // 2, BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 50))  # Adjusted position
+            question_surface = QUESTION_FONT.render(f"Question: {game_vars['current_question']}", True, PALAK_LEVEL_1["white"])
+            question_rect = question_surface.get_rect(center=(BOARD_TOP_LEFT_X + BOARD_WIDTH//2, BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 100))
             screen.blit(question_surface, question_rect)
+            text_input.draw(screen)
 
-            # Adjust input box size and position
-            input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 80, 300, 35)  # Adjusted size and position
-            pygame.draw.rect(screen, PALAK_LEVEL_1["white"], input_box)
-            pygame.draw.rect(screen, PALAK_LEVEL_1["dark_gray"], input_box, 2)
-            input_surface = INPUT_FONT.render(game_vars['input_text'], True, PALAK_LEVEL_1["dark_gray"])
-            screen.blit(input_surface, (input_box.x + 10, input_box.y + 5))
+        display_feedback_gif(game_vars['current_feedback'], game_vars['feedback_changed'])
 
-        # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-            elif event.type == pygame.KEYDOWN and not game_vars['first_round'] and not game_vars['game_over']:
-                # Handle answer submission and input
-                if event.key == pygame.K_RETURN:
-                    if game_vars['input_text'].strip():
-                        if game_vars['input_text'].strip().lower() == game_vars['current_answer']:
+            elif not game_vars['first_round'] and not game_vars['game_over']:
+                result = text_input.handle_event(event)
+                if result is not None:  # Enter was pressed
+                    if result.strip():
+                        if result.strip().lower() == game_vars['current_answer']:
                             game_vars['current_feedback'] = "correct"
-                            game_vars['feedback_time'] = current_time
+                            game_vars['feedback_changed'] = True
+                            last_feedback_change = current_time
                             game_vars['can_place_x'] = True
                         else:
                             game_vars['current_feedback'] = "incorrect"
-                            game_vars['feedback_time'] = current_time
+                            game_vars['feedback_changed'] = True
+                            last_feedback_change = current_time
                             pygame.time.wait(1000)
                             computer_move()
                             won, line = check_winner('O')
@@ -272,18 +400,18 @@ def main():
                                 game_vars['game_over'] = True
                                 game_vars['winning_line'] = line
                                 game_vars['current_feedback'] = "you_lose"
+                                game_vars['feedback_changed'] = True
+                                last_feedback_change = current_time
                             else:
                                 game_vars['current_question'], game_vars['current_answer'] = get_new_question()
-                        game_vars['input_text'] = ""
-                
-                elif event.key == pygame.K_BACKSPACE:
-                    game_vars['input_text'] = game_vars['input_text'][:-1]
-                
-                elif event.unicode.isprintable():
-                    game_vars['input_text'] += event.unicode
+                        text_input = TextInput(
+                            BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
+                            BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
+                            300,
+                            35
+                        )
 
             elif event.type == pygame.MOUSEBUTTONDOWN and not game_vars['game_over']:
-                # Handle board clicks and move placement
                 if game_vars['first_round'] or game_vars['can_place_x']:
                     if player_move(event.pos):
                         won, line = check_winner('X')
@@ -291,7 +419,8 @@ def main():
                             game_vars['game_over'] = True
                             game_vars['winning_line'] = line
                             game_vars['current_feedback'] = "you_win"
-                            return True  # Return True when player wins
+                            game_vars['feedback_changed'] = True
+                            last_feedback_change = current_time
                         else:
                             computer_move()
                             won, line = check_winner('O')
@@ -299,20 +428,25 @@ def main():
                                 game_vars['game_over'] = True
                                 game_vars['winning_line'] = line
                                 game_vars['current_feedback'] = "you_lose"
-                                return False  # Return False when player loses
+                                game_vars['feedback_changed'] = True
+                                last_feedback_change = current_time
                             elif is_full():
                                 game_vars['game_over'] = True
                                 game_vars['current_feedback'] = "tie"
+                                game_vars['feedback_changed'] = True
+                                last_feedback_change = current_time
                         
                         if game_vars['first_round']:
                             game_vars['first_round'] = False
                             game_vars['can_place_x'] = False
+                            game_vars['current_feedback'] = "type_answer"
+                            game_vars['feedback_changed'] = True
+                            last_feedback_change = current_time
                         else:
                             game_vars['can_place_x'] = False
                         
                         if not game_vars['game_over'] and not game_vars['first_round']:
                             game_vars['current_question'], game_vars['current_answer'] = get_new_question()
-                            game_vars['input_text'] = ""
 
         pygame.display.flip()
         clock.tick(60)
