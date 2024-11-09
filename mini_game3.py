@@ -11,25 +11,22 @@ pygame.mixer.init()
 WIDTH = 1539
 HEIGHT = 940
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Rock Paper Scissors Decoding Game")
+pygame.display.set_caption("Rock Paper Scissors Word Collection Game")
 
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BROWN = (122, 92, 72)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
 
 # Font settings
 font = pygame.font.Font(None, 74)
 small_font = pygame.font.Font(None, 40)
 end_font = pygame.font.Font(None, 80)
 
-# Center positions
-center_x = WIDTH // 2 - 192 // 2
-top_y = 20
-center_x_round = WIDTH // 2 - 60 // 2
-
 # Load background image
-background_img = pygame.image.load("/Users/russeljudeb.rafanan/Documents/GitHub/D-coding-Island/Minigame3/BACKGROUND_IMAGE.png")
+background_img = pygame.image.load("minigame3/BACKGROUND_IMAGE_1.png")
 background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
 
 # Load images for player's rock, paper, scissors
@@ -55,61 +52,9 @@ default_opponent_image = rock_img
 pygame.mixer.music.load("minigame3/BACKGROUND_MUSIC.mp3")
 click_sound = pygame.mixer.Sound("minigame3/music/CLICK_SOUNDEFFECT.mp3")
 
-# Load UI images
-score_img = pygame.image.load("minigame3/score/SCORE.png").convert_alpha()
-round_img = pygame.image.load("minigame3/score/ROUND.png").convert_alpha()
-
-# Load character animations
-player_img = {
-    1: pygame.image.load("minigame3/score/PLAYER.png").convert_alpha(),
-    2: pygame.image.load("minigame3/score/PLAYER2.png").convert_alpha(),
-    3: pygame.image.load("minigame3/score/PLAYER3.png").convert_alpha()
-}
-
-opponent_img = {
-    1: pygame.image.load("minigame3/score/OPPONENT.png").convert_alpha(),
-    2: pygame.image.load("minigame3/score/OPPONENT2.png").convert_alpha()
-}
-
-# Load score images
-points_imgs = {
-    1: pygame.image.load("minigame3/score/ONE.png").convert_alpha(),
-    2: pygame.image.load("minigame3/score/TWO.png").convert_alpha(),
-    3: pygame.image.load("minigame3/score/THREE.png").convert_alpha()
-}
-
-# Load round images
-round_imgs = {
-    1: pygame.image.load("minigame3/score/ROUND_1OF5.png").convert_alpha(),
-    2: pygame.image.load("minigame3/score/ROUND_2OF5.png").convert_alpha(),
-    3: pygame.image.load("minigame3/score/ROUND_3OF5.png").convert_alpha(),
-    4: pygame.image.load("minigame3/score/ROUND_4OF5.png").convert_alpha(),
-    5: pygame.image.load("minigame3/score/ROUND_5OF5.png").convert_alpha()
-}
-
 # Scale settings
-small_size = (128, 64)
-round_size = (192, 57)
-smaller_size = (int(small_size[0] * 0.2), int(small_size[1] * 0.2))
-larger_size = (300, 300)
 scale_size = (225, 225)
 larger_scale_size = (300, 300)
-
-# Scale all images
-score_img = pygame.transform.scale(score_img, smaller_size)
-round_img = pygame.transform.scale(round_img, round_size)
-
-# Scale score and round images
-for i in points_imgs:
-    points_imgs[i] = pygame.transform.scale(points_imgs[i], smaller_size)
-for i in round_imgs:
-    round_imgs[i] = pygame.transform.scale(round_imgs[i], (75, 25))
-
-# Scale character images
-for i in opponent_img:
-    opponent_img[i] = pygame.transform.scale(opponent_img[i], larger_size)
-for i in player_img:
-    player_img[i] = pygame.transform.scale(player_img[i], larger_size)
 
 # Scale game icons
 rock_img = pygame.transform.scale(rock_img, scale_size)
@@ -123,9 +68,9 @@ opponent_paper_img = pygame.transform.scale(opponent_paper_img, scale_size)
 opponent_scissors_img = pygame.transform.scale(opponent_scissors_img, scale_size)
 
 # Position settings
-player_rock_pos = (WIDTH // 4 - 112.5, HEIGHT - 225)
+player_rock_pos = (WIDTH // 3 - 112.5, HEIGHT - 225)
 player_paper_pos = (WIDTH // 2 - 112.5, HEIGHT - 225)
-player_scissors_pos = (3 * WIDTH // 4 - 112.5, HEIGHT - 225)
+player_scissors_pos = (3 * WIDTH // 4.5 - 112.5, HEIGHT - 225)
 
 # Create hitboxes
 player_rock_rect = pygame.Rect(player_rock_pos, scale_size)
@@ -134,74 +79,86 @@ player_scissors_rect = pygame.Rect(player_scissors_pos, scale_size)
 
 # Opponent settings
 opponent_base_pos = WIDTH // 2 - 112.5
-opponent_y_pos = 0  # Reset to original position
+opponent_y_pos = 0
 hand_position = opponent_base_pos
 
-# Word list
-words = [
-    "DECODE", "PYTHON", "GADGET", "OUTPUT", "WIZARD", "FACTOR", "STRING", "IMPORT",
-    "UPDATE", "BUFFER", "SYNTAX", "METHOD", "PACKET", "SOCKET", "SCRIPT", "WIDGET"
+# Technology-related word bank
+TECH_WORDS = [
+    "CODING", "PYTHON", "ROUTER", "SERVER", "BINARY",
+    "GITHUB", "LINUX", "DOCKER", "CLOUD", "GAMING"
 ]
 
-# Game state variables
-choices = ["rock", "paper", "scissors"]
-player_choice = None
-computer_choice = None
-result_text = "Pick an option"
-round_wins = 0
-computer_wins = 0
-current_round = 1
-rounds_played = 0
-max_rounds = 5
-game_over = False
-current_word = random.choice(words)
-revealed_word = ["_"] * 6
-available_hints = list(range(6))
-given_hints = []
-guesses_remaining = 3
-in_guessing_phase = False
-guess_input = ""
-guess_message = ""
-showing_result = False
-result_timer = 0
-choice_made = False
-swipe_direction = 1
+class WordGame:
+    def __init__(self):
+        self.target_word = random.choice(TECH_WORDS)
+        self.collected_letters = []
+        self.displayed_word = ["_"] * len(self.target_word)
+        self.guessing_phase = False
+        self.attempts_left = 3
+        self.current_guess = ""
+        self.message = ""
+        self.game_over = False
+        self.won = False
+        self.scrambled_letters = []
 
-# Animation variables
-current_opponent_frame = 1
-current_player_frame = 1
-last_frame_change_time = pygame.time.get_ticks()
-last_player_frame_change_time = pygame.time.get_ticks()
-frame_change_time = 200
-player_frame_change_time = 200
+    def add_letter(self):
+        # Directly check if we have positions left in the word
+        available_positions = []
+        for i, char in enumerate(self.target_word):
+            if self.displayed_word[i] == "_":  # If position is empty
+                available_positions.append(i)
+                
+        if available_positions:
+            pos = random.choice(available_positions)
+            letter = self.target_word[pos]
+            self.collected_letters.append(letter)
+            self.displayed_word[pos] = letter
+            self.scrambled_letters.append(letter)
+            
+            # Check if this was the last letter we needed
+            if len(self.collected_letters) >= len(self.target_word):
+                self.guessing_phase = True
+                random.shuffle(self.scrambled_letters)
+            return True
+        return False
 
-def reset_game():
-    global round_wins, computer_wins, current_round, result_text, game_over
-    global computer_choice, player_choice, current_word, revealed_word
-    global available_hints, given_hints, guesses_remaining, in_guessing_phase
-    global guess_input, guess_message, showing_result, result_timer, choice_made, rounds_played
+    def get_scrambled_display(self):
+        return " ".join(self.scrambled_letters)
+
+    def check_guess(self, guess):
+        # Make sure both strings are in uppercase and stripped of whitespace
+        guess = guess.upper().strip()
+        target = self.target_word.upper().strip()
+        
+        # Print for debugging
+        print(f"Guess: '{guess}', Target: '{target}'")  # This will help us see what's being compared
+        
+        if guess == target:
+            self.won = True
+            self.game_over = True
+            self.message = "Congratulations! You won!"
+            return True
+        self.attempts_left -= 1
+        if self.attempts_left == 0:
+            self.game_over = True
+            self.message = f"Game Over! The word was {self.target_word}"
+        else:
+            self.message = f"Wrong guess! {self.attempts_left} attempts left"
+        return False
+
+class GameState:
+    def __init__(self):
+        self.reset_game()
     
-    round_wins = 0
-    computer_wins = 0
-    current_round = 1
-    rounds_played = 0
-    result_text = "Pick an option"
-    game_over = False
-    computer_choice = None
-    player_choice = None
-    showing_result = False
-    result_timer = 0
-    choice_made = False
-    
-    # Reset word guessing game
-    current_word = random.choice(words)
-    revealed_word = ["_"] * 6
-    available_hints = list(range(6))
-    given_hints = []
-    guesses_remaining = 3
-    in_guessing_phase = False
-    guess_input = ""
-    guess_message = ""
+    def reset_game(self):
+        self.player_choice = None
+        self.computer_choice = None
+        self.result_text = "Pick an option"
+        self.showing_result = False
+        self.result_timer = 0
+        self.choice_made = False
+        self.word_game = WordGame()
+        self.swipe_direction = 1
 
 def determine_winner(player, computer):
     if player == computer:
@@ -212,107 +169,134 @@ def determine_winner(player, computer):
         return "player"
     else:
         return "computer"
+    
+def draw_word_progress(screen, word_game):
+    # Draw centered box - moved down
+    box_width = 650
+    box_height = 200
+    box_x = WIDTH//2 - box_width//2
+    box_y = HEIGHT//2 - 120  # Adjusted to be more centered
+    
+    # Draw the box
+    progress_box = pygame.Surface((box_width, box_height))
+    progress_box.fill(BLACK)
+    progress_box.set_alpha(128)
+    screen.blit(progress_box, (box_x, box_y))
+    
+    # Center letters in box (vertically and horizontally)
+    display_spaces = ["_" for _ in range(len(word_game.target_word))]
+    for i, letter in enumerate(word_game.collected_letters):
+        display_spaces[i] = letter
+    
+    letter_display = "  ".join(display_spaces)
+    letter_surface = font.render(letter_display, True, WHITE)
+    letter_rect = letter_surface.get_rect()
+    # Center horizontally and place 1/3 down in box
+    letter_rect.centerx = box_x + box_width//2
+    letter_rect.centery = box_y + box_height//3
+    screen.blit(letter_surface, letter_rect)
+    
+    # Center progress counter at bottom of box
+    progress_text = f"Letters: {len(word_game.collected_letters)}/{len(word_game.target_word)}"
+    progress_surface = small_font.render(progress_text, True, WHITE)
+    progress_rect = progress_surface.get_rect()
+    # Center horizontally and place 2/3 down in box
+    progress_rect.centerx = box_x + box_width//2
+    progress_rect.centery = box_y + 2*box_height//3
+    screen.blit(progress_surface, progress_rect)
+
+def draw_guessing_phase(screen, word_game):
+    # Draw semi-transparent background
+    overlay = pygame.Surface((WIDTH, HEIGHT))
+    overlay.fill(BLACK)
+    overlay.set_alpha(128)
+    screen.blit(overlay, (0, 0))
+    
+    # Draw centered box
+    box_width = 800
+    box_height = 400
+    box_x = WIDTH//2 - box_width//2
+    box_y = HEIGHT//2 - box_height//2
+    
+    guess_box = pygame.Surface((box_width, box_height))
+    guess_box.fill(BLACK)
+    guess_box.set_alpha(128)
+    screen.blit(guess_box, (box_x, box_y))
+    
+    # Draw content with even spacing
+    total_elements = 5  # Number of text elements
+    spacing = box_height // (total_elements + 1)
+    current_y = box_y + spacing
+    
+    # Draw scrambled letters
+    scrambled_text = "  ".join(word_game.scrambled_letters)
+    scrambled_surface = font.render(scrambled_text, True, WHITE)
+    scrambled_rect = scrambled_surface.get_rect()
+    scrambled_rect.centerx = box_x + box_width//2
+    scrambled_rect.centery = current_y
+    screen.blit(scrambled_surface, scrambled_rect)
+    current_y += spacing
+    
+    # Draw prompt
+    prompt_text = "Unscramble these letters!"
+    prompt_surface = small_font.render(prompt_text, True, WHITE)
+    prompt_rect = prompt_surface.get_rect()
+    prompt_rect.centerx = box_x + box_width//2
+    prompt_rect.centery = current_y
+    screen.blit(prompt_surface, prompt_rect)
+    current_y += spacing
+    
+    # Draw current guess
+    guess_text = f"Your guess: {word_game.current_guess}"
+    guess_surface = font.render(guess_text, True, WHITE)
+    guess_rect = guess_surface.get_rect()
+    guess_rect.centerx = box_x + box_width//2
+    guess_rect.centery = current_y
+    screen.blit(guess_surface, guess_rect)
+    current_y += spacing
+    
+    # Draw attempts
+    attempts_text = f"Attempts remaining: {word_game.attempts_left}"
+    attempts_surface = small_font.render(attempts_text, True, WHITE)
+    attempts_rect = attempts_surface.get_rect()
+    attempts_rect.centerx = box_x + box_width//2
+    attempts_rect.centery = current_y
+    screen.blit(attempts_surface, attempts_rect)
+    current_y += spacing
+    
+    # Draw message if exists
+    if word_game.message:
+        message_surface = small_font.render(word_game.message, True, WHITE)
+        message_rect = message_surface.get_rect()
+        message_rect.centerx = box_x + box_width//2
+        message_rect.centery = current_y
+        screen.blit(message_surface, message_rect)
 
 # Start background music
 pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(0.5)
 
-# Animation  variables for player
-current_player_frame = 1
-last_player_frame_change_time = pygame.time.get_ticks()
-player_frame_change_time = 200
-picked_state = 0
+# Initialize game state
+game_state = GameState()
+
+# Animation variables
+last_frame_change_time = pygame.time.get_ticks()
+frame_change_time = 200
 
 # Game loop
-clock = pygame.time.Clock()
 running = True
+clock = pygame.time.Clock()
 
 while running:
     current_time = pygame.time.get_ticks()
-    
     screen.fill(BROWN)
     screen.blit(background_img, (0, 0))
 
-    if not game_over and not in_guessing_phase:
-        # Draw base RPS game elements
-        screen.blit(rock_img, player_rock_pos)
-        screen.blit(paper_img, player_paper_pos)
-        screen.blit(scissors_img, player_scissors_pos)
-        
-        # Draw characters
-        screen.blit(player_img[current_player_frame], (10, 0))
-        screen.blit(opponent_img[current_opponent_frame], (WIDTH - 300, -30))
-
-        # Draw result text
-        result_surface = small_font.render(result_text, True, WHITE)
-        result_rect = result_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
-        screen.blit(result_surface, result_rect)
-
-        if current_round in round_imgs:
-            screen.blit(round_imgs[current_round], (537, 80))
-
-        # Show glowing effect if choice made
-        if player_choice and not showing_result:
-            if player_choice == "rock":
-                screen.blit(glow_rock_img, (player_rock_pos[0] - 37.5, player_rock_pos[1] - 37.5))
-            elif player_choice == "paper":
-                screen.blit(glow_paper_img, (player_paper_pos[0] - 37.5, player_paper_pos[1] - 37.5))
-            elif player_choice == "scissors":
-                screen.blit(glow_scissors_img, (player_scissors_pos[0] - 37.5, player_scissors_pos[1] - 37.5))
-
-        hand_position += swipe_direction * 5
-        if hand_position >= WIDTH // 2 + 25:
-            swipe_direction = -1
-        elif hand_position <= opponent_base_pos - 130:
-            swipe_direction = 1
-
-        # Draw opponent's hand only during RPS phase with fixed position
-        if computer_choice:
-            if computer_choice == "rock":
-                opponent_hand_img = opponent_rock_img
-            elif computer_choice == "paper":
-                opponent_hand_img = opponent_paper_img
-            elif computer_choice == "scissors":
-                opponent_hand_img = opponent_scissors_img
-            
-            opponent_hand_img_flipped = pygame.transform.flip(opponent_hand_img, False, True)
-            screen.blit(opponent_hand_img_flipped, (hand_position, opponent_y_pos))
-        elif not showing_result:
-            # Show default hand in fixed position
-            opponent_hand_img_flipped = pygame.transform.flip(opponent_rock_img, False, True)
-            screen.blit(opponent_hand_img_flipped, (opponent_base_pos, opponent_y_pos))
-
-    elif in_guessing_phase:
-        # Draw word guessing interface
-        wins_text = f"You won {round_wins} out of 5 rounds!"
-        wins_surface = small_font.render(wins_text, True, WHITE)
-        wins_rect = wins_surface.get_rect(center=(WIDTH // 2, HEIGHT // 3 - 50))
-        screen.blit(wins_surface, wins_rect)
-
-        word_display = " ".join(revealed_word)
-        word_surface = font.render(word_display, True, WHITE)
-        word_rect = word_surface.get_rect(center=(WIDTH // 2, HEIGHT // 3 + 50))
-        screen.blit(word_surface, word_rect)
-
-        guess_prompt = f"Enter your guess ({guesses_remaining} tries left):"
-        prompt_surface = small_font.render(guess_prompt, True, WHITE)
-        prompt_rect = prompt_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-        screen.blit(prompt_surface, prompt_rect)
-
-        input_surface = font.render(guess_input, True, WHITE)
-        input_rect = input_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 100))
-        screen.blit(input_surface, input_rect)
-
-        if guess_message:
-            message_surface = small_font.render(guess_message, True, WHITE)
-            message_rect = message_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 200))
-            screen.blit(message_surface, message_rect)
-
-    elif game_over:
+    if game_state.word_game.game_over:
         # Game over screen
         screen.fill(BLACK)
         end_text = "GAME OVER"
-        final_result = "YOU WIN!" if guesses_remaining > 0 else "YOU LOSE!"
+        final_result = "YOU WIN!" if game_state.word_game.won else "YOU LOSE!"
         
         end_surface = end_font.render(end_text, True, WHITE)
         end_rect = end_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 40))
@@ -322,127 +306,133 @@ while running:
         final_rect = final_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 40))
         screen.blit(final_surface, final_rect)
 
-        restart_text = "PRESS BACKSPACE TO RESTART"
+        # Show the correct word
+        word_text = f"The word was: {game_state.word_game.target_word}"
+        word_surface = small_font.render(word_text, True, WHITE)
+        word_rect = word_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 100))
+        screen.blit(word_surface, word_rect)
+
+        restart_text = "PRESS SPACE TO RESTART"
         restart_surface = small_font.render(restart_text, True, WHITE)
-        restart_rect = restart_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 100))
+        restart_rect = restart_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 150))
         screen.blit(restart_surface, restart_rect)
+        
+    elif game_state.word_game.guessing_phase:
+        draw_guessing_phase(screen, game_state.word_game)
+        
+    else:  # Regular gameplay
+        # Draw RPS game elements
+        screen.blit(rock_img, player_rock_pos)
+        screen.blit(paper_img, player_paper_pos)
+        screen.blit(scissors_img, player_scissors_pos)
+        
+        # Draw word progress in center
+        draw_word_progress(screen, game_state.word_game)
+        
+        # Draw result text below the box (only draw it here, not in draw_word_progress)
+        if game_state.result_text:
+            result_surface = small_font.render(game_state.result_text, True, WHITE)
+            result_rect = result_surface.get_rect(center=(WIDTH//2, HEIGHT//2 + 150))  # Adjusted position
+            screen.blit(result_surface, result_rect)
+        
+        # Draw opponent's hand with animation
+        game_state.hand_position = opponent_base_pos + (25 * game_state.swipe_direction)
+        if game_state.computer_choice:
+            if game_state.computer_choice == "rock":
+                opponent_hand_img = opponent_rock_img
+            elif game_state.computer_choice == "paper":
+                opponent_hand_img = opponent_paper_img
+            else:
+                opponent_hand_img = opponent_scissors_img
+            
+            opponent_hand_img_flipped = pygame.transform.flip(opponent_hand_img, False, True)
+            screen.blit(opponent_hand_img_flipped, (game_state.hand_position, opponent_y_pos))
+        elif not game_state.showing_result:
+            opponent_hand_img_flipped = pygame.transform.flip(opponent_rock_img, False, True)
+            screen.blit(opponent_hand_img_flipped, (opponent_base_pos, opponent_y_pos))
+        
+        # Show glowing effect if choice made
+        if game_state.player_choice and not game_state.showing_result:
+            if game_state.player_choice == "rock":
+                screen.blit(glow_rock_img, (player_rock_pos[0] - 37.5, player_rock_pos[1] - 37.5))
+            elif game_state.player_choice == "paper":
+                screen.blit(glow_paper_img, (player_paper_pos[0] - 37.5, player_paper_pos[1] - 37.5))
+            elif game_state.player_choice == "scissors":
+                screen.blit(glow_scissors_img, (player_scissors_pos[0] - 37.5, player_scissors_pos[1] - 37.5))
 
-    # Draw UI elements (adjusted positions)
-    screen.blit(round_img, (center_x, top_y))
-    if round_wins in points_imgs:
-        screen.blit(points_imgs[round_wins], (WIDTH - 100, 20))  # Moved to top right
-    if current_round in round_imgs:
-        screen.blit(round_imgs[current_round], (center_x + 55, top_y + 55))
-
-    #event handling
+    # Event handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
         if event.type == pygame.KEYDOWN:
-            if game_over and event.key == pygame.K_BACKSPACE:
-                reset_game()
-            elif in_guessing_phase:
-                if event.key == pygame.K_RETURN and guess_input:
-                    if guess_input.upper() == current_word:
-                        guess_message = "Congratulations! You won!"
-                        game_over = True
-                        pygame.time.delay(1000)
-                    else:
-                        guesses_remaining -= 1
-                        if guesses_remaining > 0:
-                            guess_message = f"Wrong guess! {guesses_remaining} tries remaining"
-                        else:
-                            guess_message = "Game Over! Starting new game..."
-                            pygame.time.delay(1000)
-                            reset_game()
-                    guess_input = ""
+            if game_state.word_game.game_over and event.key == pygame.K_SPACE:
+                game_state = GameState()  # Reset game
+            elif game_state.word_game.guessing_phase:
+                if event.key == pygame.K_RETURN and game_state.word_game.current_guess:
+                    print(f"Attempting guess: {game_state.word_game.current_guess}")  # Debug print
+                    game_state.word_game.check_guess(game_state.word_game.current_guess)
+                    game_state.word_game.current_guess = ""
                 elif event.key == pygame.K_BACKSPACE:
-                    guess_input = guess_input[:-1]
-                elif event.unicode.isalpha() and len(guess_input) < 6:
-                    guess_input += event.unicode.upper()
+                    game_state.word_game.current_guess = game_state.word_game.current_guess[:-1]
+                elif event.unicode.isalpha() and len(game_state.word_game.current_guess) < len(game_state.word_game.target_word):
+                    game_state.word_game.current_guess += event.unicode.upper()
 
-        if event.type == pygame.MOUSEBUTTONDOWN and not game_over and not in_guessing_phase and not showing_result and not choice_made:
+        if event.type == pygame.MOUSEBUTTONDOWN and not game_state.word_game.game_over and not game_state.word_game.guessing_phase and not game_state.showing_result:
             mouse_pos = pygame.mouse.get_pos()
+            
             if player_rock_rect.collidepoint(mouse_pos):
-                player_choice = "rock"
-                computer_choice = random.choice(choices)
+                game_state.player_choice = "rock"
+                game_state.computer_choice = random.choice(["rock", "paper", "scissors"])
                 click_sound.play()
-                choice_made = True
-                showing_result = True
-                result_timer = current_time
+                game_state.showing_result = True
+                game_state.result_timer = current_time
             elif player_paper_rect.collidepoint(mouse_pos):
-                player_choice = "paper"
-                computer_choice = random.choice(choices)
+                game_state.player_choice = "paper"
+                game_state.computer_choice = random.choice(["rock", "paper", "scissors"])
                 click_sound.play()
-                choice_made = True
-                showing_result = True
-                result_timer = current_time
+                game_state.showing_result = True
+                game_state.result_timer = current_time
             elif player_scissors_rect.collidepoint(mouse_pos):
-                player_choice = "scissors"
-                computer_choice = random.choice(choices)
+                game_state.player_choice = "scissors"
+                game_state.computer_choice = random.choice(["rock", "paper", "scissors"])
                 click_sound.play()
-                choice_made = True
-                showing_result = True
-                result_timer = current_time
-
-            if player_choice:
-                result_text = f"You chose {player_choice}. Opponent chose {computer_choice}."
-                winner = determine_winner(player_choice, computer_choice)
-
-                if winner == "player":
-                    round_wins += 1
-                    result_text += " You win this round!"
-                    if available_hints and round_wins <= 5:
-                        hint_pos = random.choice(available_hints)
-                        revealed_word[hint_pos] = current_word[hint_pos]
-                        available_hints.remove(hint_pos)
-                        given_hints.append(current_word[hint_pos])
-                    rounds_played += 1
-                    current_round += 1
-                        
-                elif winner == "computer":
-                    computer_wins += 1
-                    result_text += " Opponent wins this round!"
-                    rounds_played += 1
-                    current_round += 1
+                game_state.showing_result = True
+                game_state.result_timer = current_time
+            
+            if game_state.player_choice:
+                winner = determine_winner(game_state.player_choice, game_state.computer_choice)
+                game_state.result_text = f"You chose {game_state.player_choice}. Opponent chose {game_state.computer_choice}."
                 
-                else:  # Handle tie
-                    result_text += " It's a tie!"
-                    pygame.time.delay(500)
-                    player_choice = None
-                    computer_choice = None
-                    showing_result = False
-                    choice_made = False
-
-                # Check if 5 rounds have been played
-                if rounds_played >= 5:
-                    showing_result = False
-                    in_guessing_phase = True
-                    result_text = f"5 rounds completed! You won {round_wins} rounds. Now guess the word!"
-                    pygame.time.delay(1000)
+                if winner == "player":
+                    letter_added = game_state.word_game.add_letter()
+                    if letter_added:
+                        game_state.result_text += " You win! Letter added!"
+                    else:
+                        game_state.result_text += " You win!"
+                elif winner == "computer":
+                    game_state.result_text += " You lose!"
+                else:
+                    game_state.result_text += " It's a tie!"
+                
+                # Check if all letters are collected
+                if len(game_state.word_game.collected_letters) == len(game_state.word_game.target_word):
+                    game_state.word_game.guessing_phase = True
+                    game_state.result_text = "All letters collected! Time to guess the word!"
 
     # Handle result display timing
-    if showing_result:
-        if current_time - result_timer >= 1500:  # Show result for 1.5 seconds
-            showing_result = False
-            choice_made = False
-            if not in_guessing_phase:
-                player_choice = None
-                computer_choice = None
-                result_text = "Pick an option"
+    if game_state.showing_result:
+        if current_time - game_state.result_timer >= 1500:  # 1.5 seconds
+            game_state.showing_result = False
+            if not game_state.word_game.guessing_phase:
+                game_state.player_choice = None
+                game_state.computer_choice = None
+                game_state.result_text = "Pick an option"
 
-    # Animation updates
-    if not showing_result and not in_guessing_phase:
-        # Update opponent animation
-        if current_time - last_frame_change_time >= frame_change_time:
-            current_opponent_frame = 2 if current_opponent_frame == 1 else 1
-            last_frame_change_time = current_time
-
-        # Update player animation
-        if current_time - last_player_frame_change_time >= player_frame_change_time:
-            current_player_frame = 2 if current_player_frame == 1 else 1
-            last_player_frame_change_time = current_time
+    # Update hand swipe animation
+    if current_time - last_frame_change_time >= frame_change_time:
+        game_state.swipe_direction *= -1 if random.random() < 0.1 else 1
+        last_frame_change_time = current_time
 
     pygame.display.flip()
     clock.tick(60)
