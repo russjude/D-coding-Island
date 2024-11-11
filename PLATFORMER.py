@@ -12,83 +12,27 @@ import sys
 
 
 def load_minigame(level):
-    """Load and run a minigame module when needed"""
+    """Load a minigame module when needed"""
     try:
-        # Stop any ongoing sounds and music
-        pygame.mixer.stop()
-        pygame.mixer.music.stop()
-        
-        # Store current display settings
-        current_display = pygame.display.get_surface().copy()
-        
-        result = False
-        
-        # Map levels to their corresponding minigame modules
-        minigame_modules = {
-            1: 'mini_game1',
-            2: 'mini_game2',
-            3: 'mini_game3',
-            4: 'mini_game4',
-            5: 'mini_game5'
-        }
-        
-        if level in minigame_modules:
-            try:
-                # Import the corresponding minigame module
-                minigame = __import__(minigame_modules[level])
-                result = minigame.main()  # Run the minigame
-            except ImportError as e:
-                print(f"Could not load minigame module for level {level}: {e}")
-                return False
-            except Exception as e:
-                print(f"Error running minigame {level}: {e}")
-                return False
-                
-        # Reset display mode and caption
-        pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption('Decoding Island')
-        
-        # Show message if minigame wasn't completed
-        if not result:
-            screen = pygame.display.get_surface()
-            screen.blit(current_display, (0, 0))
-            
-            # Create semi-transparent overlay
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 180))
-            screen.blit(overlay, (0, 0))
-            
-            # Show message
-            font = pygame.font.SysFont('Bauhaus 93', 32)
-            text1 = font.render("You must complete the minigame to proceed!", True, (255, 255, 255))
-            text2 = font.render("Press any key to try again...", True, (255, 255, 255))
-            
-            text1_rect = text1.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 20))
-            text2_rect = text2.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 20))
-            
-            screen.blit(text1, text1_rect)
-            screen.blit(text2, text2_rect)
-            pygame.display.flip()
-            
-            # Wait for keypress
-            waiting = True
-            while waiting:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        return False
-                    if event.type == pygame.KEYDOWN:
-                        waiting = False
-                pygame.time.wait(100)
-            
-            # Try the minigame again
-            return load_minigame(level)
-            
-        return result
-        
-    except Exception as e:
-        print(f"Error in load_minigame: {e}")
+        if level == 1:
+            from mini_game1 import main  # Change to your actual game file/function
+            return main()
+        elif level == 2:
+            from mini_game2 import main  # Change to your actual game file/function
+            return main()
+        elif level == 3:
+            from mini_game3 import main  # Change to your actual game file/function
+            return main()
+        elif level == 4:
+            from mini_game4 import main  # Change to your actual game file/function
+            return main()
+        elif level == 5:
+            from mini_game5 import main  # Change to your actual game file/function
+            return main()
+    except ImportError as e:
+        print(f"Warning: Could not load minigame {level}: {e}")
         return False
-
+    return False
 
 
 # Initialize Pygame and mixer first
@@ -114,8 +58,8 @@ pygame.display.set_caption('Decoding Island')
 
 # Update these constants at the top of your file
 TILE_SIZE = SCREEN_HEIGHT // 36
-GRAVITY = 0.47  # Reduced from 0.45
-JUMP_SPEED = -12  # Reduced from -13
+GRAVITY = 0.40  # Reduced from 0.45
+JUMP_SPEED = -11  # Reduced from -13
 MOVE_SPEED = 6  # Reduced from 5
 game_over = 0
 current_level = 0  # 0 for start screen, 1-5 for levels
@@ -123,7 +67,6 @@ keys_collected = 0
 game_start_time = None
 level_times = []
 dialogue_states = {}
-walk_cooldown = 12
 
 # Add these with other global variables
 paused = False
@@ -576,15 +519,15 @@ LEVEL_ENEMY_DATA = {
         (0.2, 17.2, "horizontal", 0.2, 8.7),
         (44.5, 30.5, "horizontal", 44, 58.5),
         (35, 14, "horizontal", 35, 41),
-        (52.3, 9.1, "horizontal", 52.3, 58.5),
+        (52.3, 9.1, "horizontal", 52.3, 58.5)
     ],
     3: [
         (10.5, 24, "horizontal", 10.5, 20.5),
         (24, 34, "horizontal", 24, 43),
-        (7, 13.6, "horizontal", 7, 15.5),
+        (8, 13.6, "horizontal", 8, 16.5),
         (30, 2.6, "horizontal", 30, 38.5),
-        (48, 7.5, "horizontal", 48, 57),
-        (37.5, 15.8, "horizontal", 37.5, 43.5),
+        (48, 6.4, "horizontal", 48, 57),
+        (37.5, 13.8, "horizontal", 37.5, 43.5)
     ],
     4: [],  # No enemies in level 4
     5: [
@@ -811,7 +754,6 @@ class Leaderboard:
         # Position leaderboard on right side of screen
         self.screen.blit(leaderboard_surface, (self.screen.get_width() - 320, 60))
 
-
 class SceneManager:
     def __init__(self, screen):
         self.screen = screen
@@ -832,7 +774,7 @@ class SceneManager:
             {
                 'image': 'DCI_Scenes/Scene1.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene1.mp3',
-                'text': 'Enter Your Name: input()',
+                'text': 'Enter Your Name:',
                 'input': True,
                 'next': 'scene'
             },
@@ -982,11 +924,7 @@ class SceneManager:
     def next_scene(self):
         self.scene_index += 1
         if self.scene_index < len(self.scenes):
-            self.current_scene = Scene(
-                self.screen, 
-                self.scenes[self.scene_index],
-                self.player_name  # Add this parameter
-            )
+            self.current_scene = Scene(self.screen, self.scenes[self.scene_index], self.player_name)
         else:
             self.scene_index = len(self.scenes) - 1  # Stay on last scene
 
@@ -994,8 +932,8 @@ class SceneManager:
         self.level_completed = True
         self.current_level = level + 1
         level_to_scene = {
-            0: 6,  # After tutorial, go to Scene 7
-            1: 7,  # After Level 1, go to Scene 8
+            0: 7,  # After tutorial, go to Scene 8
+            1: 8,  # After Level 1, go to Scene 9
             2: 10, # After Level 2, go to Scene 11
             3: 12, # After Level 3, go to Scene 13
             4: 14, # After Level 4, go to Scene 15
@@ -1266,68 +1204,6 @@ class Scene:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
             if not self.fading_in and not self.fading_out:
                 self.fading_out = True
-
-def load_minigame(level):
-    """Load and run a minigame module when needed"""
-    try:
-        # Stop any ongoing sounds and music
-        pygame.mixer.stop()
-        pygame.mixer.music.stop()
-        
-        # Store current display settings
-        current_display = pygame.display.get_surface().copy()
-        
-        result = False
-        
-        if level == 1:
-            from mini_game1 import main
-            result = main()
-        elif level == 2:
-            from mini_game2 import main
-            result = main()
-        elif level == 3:
-            from mini_game3 import main
-            result = main()
-        elif level == 4:
-            from mini_game4 import main
-            result = main()
-        elif level == 5:
-            from mini_game5 import main
-            result = main()
-        else:
-            print(f"No minigame defined for level {level}")
-            return False
-            
-        # Reset display mode and caption
-        pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption('Decoding Island')
-        
-        # Restore previous display if minigame wasn't completed
-        if not result:
-            screen.blit(current_display, (0, 0))
-            pygame.display.flip()
-            
-            # Show message to player
-            font = pygame.font.SysFont('Bauhaus 93', 32)
-            text = font.render("You must complete the minigame to proceed!", True, (255, 0, 0))
-            text_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
-            screen.blit(text, text_rect)
-            pygame.display.flip()
-            
-            # Wait a moment so player can read the message
-            pygame.time.wait(2000)
-            
-        # Re-initialize game sounds
-        init_game()
-        
-        return result
-        
-    except ImportError as e:
-        print(f"Warning: Could not load minigame {level}: {e}")
-        return False
-    except Exception as e:
-        print(f"Error running minigame {level}: {e}")
-        return False
 
 class PauseButton:
     def __init__(self, screen):
@@ -2192,17 +2068,15 @@ class Camera:
         )
 
 def reset_level():
-    """Properly reset the level state and reinitialize all game components"""
+    """Properly reset the level state"""
     global game_over, keys_collected, movement_enabled, game_start_time
     global player, world, moving_enemies, keys_group, door, ghost, camera
-    global total_pause_time, current_level
 
     # Reset game state
     game_over = 0
     keys_collected = 0
     movement_enabled = False
     game_start_time = None
-    total_pause_time = timedelta(0)
 
     # Stop all sounds
     if hasattr(player, 'stop_sounds'):
@@ -2214,54 +2088,42 @@ def reset_level():
     camera.cleanup()
     camera.reset_zoom()
 
-    try:
-        # Get fresh level data
-        platforms = LEVEL_PLATFORM_DATA[current_level]
-        deadly_tiles = LEVEL_DEADLY_DATA[current_level]
-        enemy_data = LEVEL_ENEMY_DATA[current_level]
+    # Initialize level data
+    platforms = LEVEL_PLATFORM_DATA[current_level]
+    deadly_tiles = LEVEL_DEADLY_DATA[current_level]
+    enemy_data = LEVEL_ENEMY_DATA[current_level]
 
-        # Create new world instance
-        world = World(platforms, deadly_tiles)
+    # Create world
+    world = World(platforms, deadly_tiles)
 
-        # Get spawn position
-        spawn_pos = find_spawn_position(platforms)
+    # Find spawn position
+    spawn_pos = find_spawn_position(platforms)
 
-        # Create new player at spawn position
-        player = Player(spawn_pos[0], spawn_pos[1])
-        player.dead = False  # Ensure player is not dead
+    # Create new player at spawn position
+    player = Player(spawn_pos[0], spawn_pos[1])
 
-        # Create fresh ghost
-        ghost = Ghost(SCREEN_WIDTH, SCREEN_HEIGHT, player, current_level)
+    # Create ghost
+    ghost = Ghost(SCREEN_WIDTH, SCREEN_HEIGHT, player, current_level)
 
-        # Get door position and create new door
-        door_pos = find_door_position(platforms)
-        door = Door(door_pos[0], door_pos[1])
-        door.entered = False
-        door.is_open = False
+    # Set up door
+    door_pos = find_door_position(platforms)
+    door = Door(door_pos[0], door_pos[1])
 
-        # Create fresh key group with new key positions
-        keys_group = pygame.sprite.Group()
-        key_positions = generate_key_positions(current_level)
-        for pos in key_positions:
-            keys_group.add(Key(pos[0], pos[1]))
+    # Generate and place keys
+    keys_group = pygame.sprite.Group()
+    key_positions = generate_key_positions(current_level)
+    for pos in key_positions:
+        keys_group.add(Key(pos[0], pos[1]))
 
-        # Create fresh enemies
-        moving_enemies = pygame.sprite.Group()
-        for enemy_info in enemy_data:
-            x, y, direction, boundary_start, boundary_end = enemy_info
-            enemy = MovingEnemy(x * TILE_SIZE, y * TILE_SIZE, direction, boundary_start, boundary_end)
-            moving_enemies.add(enemy)
+    # Create enemies
+    moving_enemies = pygame.sprite.Group()
+    for enemy_info in enemy_data:
+        x, y, direction, boundary_start, boundary_end = enemy_info
+        enemy = MovingEnemy(x * TILE_SIZE, y * TILE_SIZE, direction, boundary_start, boundary_end)
+        moving_enemies.add(enemy)
 
-        # Reset camera and start transition
-        camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
-        camera.start_transition()
-
-        return True
-
-    except Exception as e:
-        print(f"Error resetting level: {e}")
-        return False
-
+    camera.start_transition()
+    return True
 
 def generate_key_positions(level):
     """Improved key position generation with better boundary checking"""
@@ -2645,37 +2507,60 @@ class Player(pygame.sprite.Sprite):
         self.stop_sounds()
 
     def update(self, game_over, world, keys_group, camera):
-        dx = 0  # Initialize dx
-        dy = 0  # Initialize dy
-        
+        global keys_collected
+        dx = 0
+        dy = 0
+        walk_cooldown = 12
+
+        # Check for game over state
         if game_over == -1:
             if not self.dead:
                 self.dead = True
                 self.image = self.dead_image
                 game_over_fx.play()
-                self.stop_sounds()
+                self.stop_sounds()  # Stop all player sounds when dying
+              # Don't process movement if not enabled or during door zoom
 
-            # Draw game over text
             draw_text('GAME OVER!', 70, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
-            
-            # Check for restart button press
             if restart_button.draw(screen):
+
+                # Reset death state
                 self.dead = False
                 self.image = self.animations_right[self.index]  # Reset to normal image
+                # Rest of reset code...
+                # Reset necessary variables
+                game_over = 0
+                keys_collected = 0
                 
-                # Call reset_level instead of manually resetting values
-                if reset_level():
-                    return 0  # Return 0 to indicate successful restart
+                # Stop any ongoing sounds
+                if hasattr(player, 'stop_sounds'):
+                    player.stop_sounds()
+                if hasattr(camera, 'stop_sounds'):
+                    camera.stop_sounds()
+                    
+                # Reset camera state
+                camera.cleanup()
+                camera.reset_zoom()
+                camera.start_transition()
                 
-            return -1  # Keep game over state if restart wasn't successful
+                # Reset the timer when the player restarts
+                global game_start_time
+                game_start_time = time.time()  # Set the timer to the current time
+                
+                # Reinitialize game assets
+                init_game()  # Call the init_game function to reset game assets
 
         if not movement_enabled or camera.door_zoom:
             self.stop_sounds()  # Stop sounds when movement is disabled
             self.vel_y = 0  # Reset vertical velocity
-            return game_over
 
         if self.dead:
             return game_over  
+        
+        if not movement_enabled or camera.door_zoom:
+            return game_over
+        # Reset death handling flag when game is restarted
+        self._death_handled = False
         
         # Normal movement code here
         if camera.transition_complete:
@@ -2727,7 +2612,7 @@ class Player(pygame.sprite.Sprite):
                     self.image = self.animations_left[self.index]
 
             # Handle animation
-            if self.counter > walk_cooldown:  # walk_cooldown needs to be defined
+            if self.counter > walk_cooldown:
                 self.counter = 0
                 self.index += 1
                 if self.index >= len(self.animations_right):
@@ -2742,6 +2627,9 @@ class Player(pygame.sprite.Sprite):
         if self.vel_y > 10:
             self.vel_y = 10
         dy += self.vel_y
+
+        if not movement_enabled or camera.door_zoom:
+            return game_over
         
         # Handle falling sound
         if self.in_air and self.vel_y > 0:  # If falling
@@ -2759,7 +2647,6 @@ class Player(pygame.sprite.Sprite):
         key_hits = pygame.sprite.spritecollide(self, keys_group, True)
         if key_hits:
             self.key_collect_sound.play()
-            global keys_collected
             keys_collected += len(key_hits)
 
         # Assume we're in the air unless collision detection proves otherwise
@@ -3249,15 +3136,12 @@ def initialize_game_objects():
     start_button = Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2, start_btn)
     restart_button = Button(SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 + 100, restart_img)
     camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
-    
-    # Initialize level components
-    level_objects = init_level(0)  # Start with tutorial level
-    if level_objects is not None:
-        keys_group, door, world, moving_enemies, player, ghost = level_objects
-    else:
-        print("Failed to initialize level objects")
-        return None
-    
+    player = Player(100, SCREEN_HEIGHT - 130)
+    world = World(LEVEL_PLATFORM_DATA[1], LEVEL_DEADLY_DATA[1])
+    moving_enemies = pygame.sprite.Group()
+    keys_group = pygame.sprite.Group()
+    door = None
+    ghost = None
     game_over = 0
     current_state = "name_input"
     movement_enabled = False 
@@ -3342,51 +3226,20 @@ while running:
         if scene_manager.current_scene.completed:
             next_state = scene_manager.scenes[scene_manager.scene_index].get('next', 'scene')
             
-            # Check if we're at a scene that leads to a minigame
-            minigame_levels = {
-                7: (1, 8),    # Before Level 1 -> Scene 8
-                9: (2, 10),   # Before Level 2 -> Scene 10
-                11: (3, 12),  # Before Level 3 -> Scene 12
-                13: (4, 14),  # Before Level 4 -> Scene 14
-                15: (5, 16)   # Before Level 5 -> Scene 16
-            }
-            
-            if scene_manager.scene_index in minigame_levels:
-                minigame_level, next_scene_index = minigame_levels[scene_manager.scene_index]
-                minigame_result = load_minigame(minigame_level)
+            if next_state == 'scene':
+                scene_manager.next_scene()
+            elif next_state.startswith('level_'):
+                level_num = 0 if scene_manager.scene_index == 6 else int(next_state.split('_')[1])
+                game_start_time = None
+                movement_enabled = False
                 
-                if minigame_result:  # If minigame was completed successfully
-                    # Progress to the next scene after minigame completion
-                    scene_manager.scene_index = next_scene_index  # Set to the correct next scene
-                    # Pass the player_name to the Scene constructor
-                    scene_manager.current_scene = Scene(
-                        screen, 
-                        scene_manager.scenes[scene_manager.scene_index], 
-                        scene_manager.player_name  # This was missing before
-                    )
-                    current_state = "scene"
-                else:
-                    # If minigame wasn't completed, reset scene state to try again
-                    scene_manager.current_scene.completed = False
-                    scene_manager.current_scene.fading_out = False
-                    continue
-                    
-            else:
-                # Handle non-minigame scene transitions
-                if next_state == 'scene':
-                    scene_manager.next_scene()
-                elif next_state.startswith('level_'):
-                    level_num = int(next_state.split('_')[1])
-                    game_start_time = None
-                    movement_enabled = False
-                    
-                    level_objects = init_level(level_num)
-                    if all(obj is not None for obj in level_objects):
-                        keys_group, door, world, moving_enemies, player, ghost = level_objects
-                        camera.start_transition()
-                        current_state = "playing"
-                elif next_state == 'game_complete':
-                    current_state = "game_complete"
+                level_objects = init_level(level_num)
+                if all(obj is not None for obj in level_objects):
+                    keys_group, door, world, moving_enemies, player, ghost = level_objects
+                    camera.start_transition()
+                    current_state = "playing"
+            elif next_state == 'game_complete':
+                current_state = "game_complete"
                 
     elif current_state == "playing":
         # Get and draw the current background
@@ -3478,23 +3331,16 @@ while running:
             if not paused:
                 pause_button.draw()
                 leaderboard.draw()  # Draw leaderboard during gameplay
-                
+        
+        # Handle game over state
         if game_over == -1:
             text_x = (SCREEN_WIDTH // 2) - int(200 * SCALE_X)
             text_y = SCREEN_HEIGHT // 2
             draw_text('GAME OVER!', int(70 * SCALE_Y), BLUE, text_x, text_y)
-            
             if restart_button.draw(screen):
-                success = reset_level()
-                if not success:
-                    print("Failed to reset level")
+                if not reset_level():
+                    print("Failed to restart level")
                     running = False
-                else:
-                    # Ensure the game state is properly reset
-                    game_over = 0
-                    player.dead = False
-                    movement_enabled = False
-                    camera.start_transition()
         
     elif current_state == "game_complete":
         screen.fill(BLACK)

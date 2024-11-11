@@ -321,14 +321,16 @@ class Game:
             300,
             35
         )
-
+        won = False  # Track if player has won
         while running:
             current_time = time.time()
             
             # Handle events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    pygame.quit()
+                    return False
+                    
                 elif event.type == pygame.MOUSEBUTTONDOWN and not game_vars['game_over']:
                     if game_vars['first_round'] or game_vars['can_place_x']:
                         if self.player_move(event.pos):
@@ -344,21 +346,22 @@ class Game:
                                 # Check if player won
                                 won, line = self.check_winner('X')
                                 if won:
-                                    game_vars['game_over'] = True
-                                    game_vars['current_feedback'] = "you_win"
-                                    game_vars['feedback_changed'] = True
+                                    # Draw final state
+                                    self.screen.blit(self.background, (0, 0))
+                                    self.draw_board()
+                                    pygame.display.flip()
+                                    pygame.time.wait(1000)  # Brief delay to show final state
+                                    pygame.quit()
+                                    return True  # Immediately return True when player wins
+                                    
                                 else:
                                     # Computer's turn
                                     self.computer_move()
                                     won, line = self.check_winner('O')
                                     if won:
                                         game_vars['game_over'] = True
-                                        game_vars['current_feedback'] = "you_lose"
-                                        game_vars['feedback_changed'] = True
                                     elif self.is_full():
                                         game_vars['game_over'] = True
-                                        game_vars['current_feedback'] = "tie"
-                                        game_vars['feedback_changed'] = True
                                     game_vars['can_place_x'] = False
                 
                 elif not game_vars['first_round'] and not game_vars['game_over']:
@@ -366,22 +369,15 @@ class Game:
                     if result is not None:  # Enter was pressed
                         if result.strip().lower() == game_vars['current_answer'].lower() or result.strip().lower()== "palak":
                             game_vars['can_place_x'] = True
-                            game_vars['current_feedback'] = "correct"
-                            game_vars['feedback_changed'] = True
-                            # Get new question right away when answer is correct
                             game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                         else:
-                            game_vars['current_feedback'] = "incorrect"
-                            game_vars['feedback_changed'] = True
                             # Computer's turn after incorrect answer
                             self.computer_move()
                             won, line = self.check_winner('O')
                             if won:
                                 game_vars['game_over'] = True
-                                game_vars['current_feedback'] = "you_lose"
                             elif self.is_full():
                                 game_vars['game_over'] = True
-                                game_vars['current_feedback'] = "tie"
                             # Get new question after incorrect answer
                             game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                         text_input.text = ""
@@ -404,45 +400,15 @@ class Game:
                 self.screen.blit(question_surface, question_rect)
                 text_input.draw(self.screen)
 
-            # Display feedback GIF
-            if game_vars['show_initial']:
-                done = self.feedback_gifs["initial"].render(self.screen, (FEEDBACK_X, FEEDBACK_Y))
-                if done:
-                    game_vars['show_initial'] = False
-                    game_vars['current_feedback'] = "first_move"
-                    self.feedback_gifs["first_move"].reset()
-            else:
-                if game_vars['feedback_changed']:
-                    self.feedback_gifs[game_vars['current_feedback']].reset()
-                    game_vars['feedback_changed'] = False
-                self.feedback_gifs[game_vars['current_feedback']].render(self.screen, (FEEDBACK_X, FEEDBACK_Y))
-
-            # Handle game over state
-            if game_vars['game_over']:
-                if self.feedback_gifs[game_vars['current_feedback']].done_playing:
-                    pygame.time.wait(1000)
-                    game_vars = self.reset_game()
-                    text_input = TextInput(
-                        BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
-                        BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
-                        300,
-                        35
-                    )
-
             pygame.display.flip()
             clock.tick(60)
 
         pygame.quit()
+        return False
 
 def main():
-    try:
-        if sys.platform != 'win32':
-            os.nice(-10)
-    except:
-        pass
-    
     game = Game()
-    game.run()
+    return game.run()  # Return the game result
 
 if __name__ == "__main__":
     main()
