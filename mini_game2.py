@@ -13,8 +13,8 @@ import pygame
 import random
 from PIL import Image
 import os
+import sys
 
-# Initialize Pygame engine
 pygame.init()
 
 # Screen and game constants
@@ -23,6 +23,7 @@ SCREEN_HEIGHT = 940
 GRID_SIZE = 6
 WORD_LENGTH = 5
 FONT_SIZE = 50
+ANSWER_FONT_SIZE = 40  # Smaller font size for answer
 BOX_SIZE = 100
 BOX_SPACING = 15
 BOX_BORDER_RADIUS = 5
@@ -41,7 +42,7 @@ YELLOW = (181, 159, 59)
 GRAY = (58, 58, 60)
 TEXT_COLOR = (255, 255, 255)
 
-# Programming-themed word bank
+# Programming-themed word bank plus master word
 word_list = [
     "ARRAY", "CLASS", "DEBUG", "ERROR", "FLOAT", 
     "INPUT", "LOGIC", "LOOPS", "QUEUE", "STACK",
@@ -57,7 +58,8 @@ word_list = [
     "DELAY", "DRAFT", "EMPTY", "FETCH", "FLAGS",
     "FLASH", "GROUP", "GUARD", "HTTPS", "LEVEL",
     "LINKS", "MODEL", "NUMPY", "PATCH", "PAUSE",
-    "PROTO", "RESET", "ROUND", "SCALE", "THROW"
+    "PROTO", "RESET", "ROUND", "SCALE", "THROW",
+    "RUSSS"  # Master word for instant win
 ]
 
 class GifPlayer:
@@ -65,7 +67,8 @@ class GifPlayer:
         self.frames = []
         self.current_frame = 0
         self.last_update = 0
-        self.frame_duration = 100  # Default duration between frames in ms
+        self.frame_duration = 30  # Fast animation speed
+        self.is_complete = False
         
         # Load GIF frames using Pillow
         gif = Image.open(gif_path)
@@ -82,11 +85,18 @@ class GifPlayer:
     def update(self):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_update > self.frame_duration:
-            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.current_frame += 1
+            if self.current_frame >= len(self.frames):
+                self.current_frame = 0
+                self.is_complete = True
             self.last_update = current_time
 
     def get_current_frame(self):
         return self.frames[self.current_frame]
+
+    def reset(self):
+        self.current_frame = 0
+        self.is_complete = False
 
 class FeedbackSystem:
     def __init__(self):
@@ -100,16 +110,71 @@ class FeedbackSystem:
         }
         self.current_gif = None
         self.display_time = 0
+        self.gif_queue = []
+        self.showing_answer = False
+        self.answer_start_time = 0
+        self.lost_gif_complete = False
+        self.won_gif_complete = False
+        self.answer_display_duration = 2000  # 2 seconds to show answer
+        self.answer_font = pygame.font.Font('Minigame2/PRESSSTART2P.ttf', ANSWER_FONT_SIZE)
 
-    def show_gif(self, gif_name, duration=3000):
-        self.current_gif = self.gifs[gif_name]
-        self.display_time = pygame.time.get_ticks() + duration
+    def show_gif(self, gif_name):
+        if gif_name not in [g[0] for g in self.gif_queue]:
+            self.gifs[gif_name].reset()
+            self.gif_queue.append((gif_name, None))
 
-    def update(self, screen):
-        if self.current_gif and pygame.time.get_ticks() < self.display_time:
-            self.current_gif.update()
-            frame = self.current_gif.get_current_frame()
+    def update(self, screen, secret_word=None, game_font=None):
+        current_time = pygame.time.get_ticks()
+        
+        # Handle win state
+        if self.won_gif_complete:
+            pygame.time.wait(1000)  # Wait for 1 second after win animation
+            pygame.quit()
+            sys.exit()
+
+        # Show answer after loss
+        if self.showing_answer and secret_word:
+            # Calculate position at bottom of grid
+            start_y = 175  # Starting Y position of grid
+            grid_height = GRID_SIZE * (BOX_SIZE + BOX_SPACING)
+            answer_y = start_y + grid_height + 30  # 30 pixels padding below grid
+            
+            answer_text = f"The word was: {secret_word}"
+            text_surface = self.answer_font.render(answer_text, True, TEXT_COLOR)
+            text_rect = text_surface.get_rect(center=(SCREEN_WIDTH // 2, answer_y))
+            screen.blit(text_surface, text_rect)
+            
+            # Check if we should restart after showing answer
+            if self.lost_gif_complete and current_time - self.answer_start_time > self.answer_display_duration:
+                return True  # Signal to restart game
+        
+        # Update current GIF
+        if self.gif_queue:
+            gif_name, _ = self.gif_queue[0]
+            current_gif = self.gifs[gif_name]
+            current_gif.update()
+            frame = current_gif.get_current_frame()
             screen.blit(frame, (FEEDBACK_X, FEEDBACK_Y))
+            
+            if current_gif.is_complete:
+                self.gif_queue.pop(0)
+                
+                if gif_name == 'lost':
+                    self.showing_answer = True
+                    self.answer_start_time = current_time
+                    self.lost_gif_complete = True
+                elif gif_name == 'won':
+                    self.won_gif_complete = True
+        
+        return False
+
+    def reset(self):
+        self.showing_answer = False
+        self.lost_gif_complete = False
+        self.won_gif_complete = False
+        self.gif_queue = []
+        for gif in self.gifs.values():
+            gif.reset()
 
 class Timer:
     def __init__(self, duration):
@@ -162,6 +227,10 @@ def draw_box(screen, game_font, x, y, color, letter='', border_color=None):
 
 def get_letter_colors(guess, secret):
     """Determine feedback colors for each letter in the guess"""
+    # Special case for RUSSS - all green
+    if guess == "RUSSS":
+        return [GREEN] * WORD_LENGTH
+        
     colors = [GRAY] * WORD_LENGTH
     remaining_letters = {}
 
@@ -219,31 +288,45 @@ def main():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Wordle")
 
-    # Load custom font and background
+    def reset_game():
+        nonlocal secret_word, timer, guesses, current_guess, game_over, won
+        secret_word = random.choice(word_list)
+        timer = Timer(90)  # 90 seconds = 1 minute and 30 seconds
+        guesses = []
+        current_guess = ""
+        game_over = False
+        won = False
+        feedback.reset()  # Reset feedback system
+        feedback.show_gif('welcome')
+        feedback.show_gif('instructions')
+
+    # Initialize game components
     game_font = pygame.font.Font('Minigame2/PRESSSTART2P.ttf', FONT_SIZE)
     background_image = pygame.image.load("Minigame2/Palak Minigame (7).png")
     background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
-
-    # Initialize game components
-    secret_word = random.choice(word_list)
-    timer = Timer(90)  # 90 seconds = 1 minute and 30 seconds
+    
+    secret_word = None
+    timer = None
+    guesses = None
+    current_guess = None
+    game_over = None
+    won = None
     feedback = FeedbackSystem()
     
-    running = True
-    guesses = []
-    current_guess = ""
-    game_over = False
-    won = False
-    
-    # Show welcome and instructions at start
-    feedback.show_gif('welcome', 3000)
-    feedback.show_gif('instructions', 3000)
+    # Initial game setup
+    reset_game()
 
+    running = True
     while running:
         screen.blit(background_image, (0, 0))
         draw_grid(screen, game_font, guesses, current_guess, secret_word)
         timer.draw(screen, game_font)
-        feedback.update(screen)
+        
+        # Update feedback system and check if game should restart
+        should_restart = feedback.update(screen, secret_word, game_font)
+        if should_restart:
+            reset_game()
+            continue
 
         # Check timer warning
         if timer.should_show_warning():
@@ -252,6 +335,7 @@ def main():
         # Check timer finished
         if timer.is_finished() and not game_over:
             game_over = True
+            timer.stop()
             feedback.show_gif('lost')
 
         for event in pygame.event.get():
@@ -259,35 +343,26 @@ def main():
                 running = False
 
             if event.type == pygame.KEYDOWN:
-                if game_over:
-                    if event.key == pygame.K_SPACE:
-                        # Reset game state
-                        secret_word = random.choice(word_list)
-                        timer = Timer(90)
-                        guesses = []
-                        current_guess = ""
-                        game_over = False
-                        won = False
-                        feedback.show_gif('welcome')
-                elif event.key == pygame.K_RETURN:
-                    if len(current_guess) < WORD_LENGTH:
-                        feedback.show_gif('short')
-                    elif len(current_guess) == WORD_LENGTH:
-                        guesses.append(current_guess)
-                        if current_guess == secret_word:
-                            won = True
-                            game_over = True
-                            timer.stop()
-                            feedback.show_gif('won')
-                        elif len(guesses) >= GRID_SIZE:
-                            game_over = True
-                            timer.stop()
-                            feedback.show_gif('lost')
-                        current_guess = ""
-                elif event.key == pygame.K_BACKSPACE:
-                    current_guess = current_guess[:-1]
-                elif len(current_guess) < WORD_LENGTH and event.unicode.isalpha():
-                    current_guess += event.unicode.upper()
+                if not game_over:
+                    if event.key == pygame.K_RETURN:
+                        if len(current_guess) < WORD_LENGTH:
+                            feedback.show_gif('short')
+                        elif len(current_guess) == WORD_LENGTH:
+                            guesses.append(current_guess)
+                            if current_guess == secret_word or current_guess == "RUSSS":
+                                won = True
+                                game_over = True
+                                timer.stop()
+                                feedback.show_gif('won')
+                            elif len(guesses) >= GRID_SIZE:
+                                game_over = True
+                                timer.stop()
+                                feedback.show_gif('lost')
+                            current_guess = ""
+                    elif event.key == pygame.K_BACKSPACE:
+                        current_guess = current_guess[:-1]
+                    elif len(current_guess) < WORD_LENGTH and event.unicode.isalpha():
+                        current_guess += event.unicode.upper()
 
         pygame.display.flip()
 

@@ -1,21 +1,23 @@
 import pygame
 import random
-import time
 from PIL import Image
+import time
+import os
+import sys
+from pathlib import Path
 
-# Initialize game engine
 pygame.init()
 
-# Set the desired resolution
+# Constants
 SCREEN_WIDTH = 1539
 SCREEN_HEIGHT = 940
-
-# Set up the display
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Decoding Island')
-
-# Define tile size based on background height
-TILE_SIZE = SCREEN_HEIGHT // 36
+BOARD_WIDTH = 500
+BOARD_HEIGHT = 500
+BOARD_TOP_LEFT_X = (SCREEN_WIDTH - BOARD_WIDTH) // 2
+BOARD_TOP_LEFT_Y = 200
+FONT_PATH = "Minigame1/Palak minigame img/PRESSSTART2P.ttf"
+FEEDBACK_X = SCREEN_WIDTH - 420
+FEEDBACK_Y = SCREEN_HEIGHT // 2 - 300
 
 # Colors
 PALAK_LEVEL_1 = {
@@ -27,431 +29,420 @@ PALAK_LEVEL_1 = {
     "white": (255, 255, 255)
 }
 
-# Game board layout settings - centered position
-BOARD_WIDTH, BOARD_HEIGHT = 500, 500
-BOARD_TOP_LEFT_X = (SCREEN_WIDTH - BOARD_WIDTH) // 2
-BOARD_TOP_LEFT_Y = 200
-
-# Text rendering setup
-FONT_PATH = "Minigame1/Palak minigame img/PRESSSTART2P.ttf"
-FONT = pygame.font.Font(FONT_PATH, 25)
-QUESTION_FONT = pygame.font.Font(FONT_PATH, 17)
-INPUT_FONT = pygame.font.Font(FONT_PATH, 17)
-
-# Load and scale background
-background_image = pygame.image.load("Minigame1/Palak minigame img/Palak Minigame.png")
-background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
-
-class GIFImage:
+class CachedGIFImage:
     def __init__(self, filename):
+        self.frames = []
+        self.current_frame = 0
+        self.frame_delay = 1.0 / 30
+        self.last_update = 0
+        self.done_playing = False
+        self.play_count = 0
+        self.max_plays = 1
+        
         try:
-            self.filename = filename
-            self.image = Image.open(filename)
-            self.frames = []
-            self.get_frames()
-            self.cur = 0
-            self.ptime = time.time()
-            self.running = True
-            self.breakpoint = len(self.frames)-1
-            self.startpoint = 0
-            self.reversed = False
-            self.current_frame = 0
-            self.total_frames = len(self.frames)
-            self.time_delta = 1.0 / 30
-            self.last_state = None
+            gif_path = Path(filename)
+            if not gif_path.exists():
+                raise FileNotFoundError(f"GIF file not found: {filename}")
+                
+            with Image.open(filename) as img:
+                for frame_idx in range(getattr(img, 'n_frames', 1)):
+                    img.seek(frame_idx)
+                    frame = img.convert('RGBA')
+                    frame = frame.resize((400, 400), Image.Resampling.LANCZOS)
+                    pygame_surface = pygame.image.fromstring(
+                        frame.tobytes(), frame.size, frame.mode
+                    ).convert_alpha()
+                    self.frames.append(pygame_surface)
         except Exception as e:
-            print(f"Error loading GIF {filename}: {e}")
-            surface = pygame.Surface((200, 200))
-            surface.fill((100, 100, 100))
+            print(f"Error loading GIF {filename}: {e}", file=sys.stderr)
+            surface = pygame.Surface((400, 400))
+            surface.fill((255, 0, 0))
             self.frames = [surface]
-            self.total_frames = 1
-            self.current_frame = 0
-            self.time_delta = 1.0 / 30
-
-    def get_frames(self):
-        image = self.image
-        
-        if hasattr(image, "palette"):
-            palette = image.palette.getdata()[1]
-        else:
-            palette = None
-        
-        try:
-            while True:
-                if image.mode == 'P':
-                    if palette:
-                        image.putpalette(palette)
-                    converted = image.convert('RGBA')
-                else:
-                    converted = image.convert('RGBA')
-
-                mode = converted.mode
-                size = converted.size
-                data = converted.tobytes()
-                
-                py_image = pygame.image.fromstring(data, size, mode).convert_alpha()
-                py_image = pygame.transform.scale(py_image, (400, 400))
-                
-                self.frames.append(py_image)
-                image.seek(image.tell() + 1)
-        except EOFError:
-            pass
-        except Exception as e:
-            print(f"Error processing frame: {e}")
-            if not self.frames:
-                surface = pygame.Surface((200, 200))
-                surface.fill((100, 100, 100))
-                self.frames = [surface]
 
     def render(self, screen, pos):
-        if self.running and self.frames:
-            current_time = time.time()
-            if current_time - self.ptime > self.time_delta:
-                self.ptime = current_time
-                self.current_frame = (self.current_frame + 1) % self.total_frames
+        current_time = time.time()
+        if not self.done_playing and self.frames:
+            if current_time - self.last_update > self.frame_delay:
+                self.last_update = current_time
+                self.current_frame = (self.current_frame + 1) % len(self.frames)
+                if self.current_frame == 0:
+                    self.play_count += 1
+                    if self.play_count >= self.max_plays:
+                        self.done_playing = True
             
             if self.frames:
-                frame = self.frames[self.current_frame]
-                screen.blit(frame, pos)
+                screen.blit(self.frames[self.current_frame], pos)
+        return self.done_playing
 
     def reset(self):
         self.current_frame = 0
-        self.ptime = time.time()
-
-# Initialize feedback GIFs
-def load_feedback_gifs():
-    gifs = {}
-    gif_paths = {
-        "initial": "Minigame1/Palak minigame img/1-unscreen.gif",
-        "first_move": "Minigame1/Palak minigame img/2-unscreen (1).gif",
-        "click_anywhere": "Minigame1/Palak minigame img/3-unscreen (1).gif",
-        "type_answer": "Minigame1/Palak minigame img/4-unscreen (1).gif",
-        "correct": "Minigame1/Palak minigame img/5-unscreen (1).gif",
-        "incorrect": "Minigame1/Palak minigame img/6-unscreen (1).gif",
-        "you_win": "Minigame1/Palak minigame img/7-unscreen (1).gif",
-        "you_lose": "Minigame1/Palak minigame img/8-unscreen (1).gif",
-        "tie": "Minigame1/Palak minigame img/9-unscreen (1).gif"
-    }
-    
-    for key, path in gif_paths.items():
-        try:
-            gifs[key] = GIFImage(path)
-        except Exception as e:
-            print(f"Failed to load GIF {path}: {e}")
-            surface = pygame.Surface((200, 200))
-            surface.fill((100, 100, 100))
-            gifs[key] = type('DummyGIF', (), {
-                'render': lambda s, screen, pos: screen.blit(surface, pos),
-                'reset': lambda s: None
-            })()
-    
-    return gifs
-
-# Position for feedback GIFs
-FEEDBACK_X = SCREEN_WIDTH - 420
-FEEDBACK_Y = SCREEN_HEIGHT // 2 - 300
-
-# Initialize game board and question bank
-board = [' ' for _ in range(9)]
-questions = [
-    ("What operator is used to check for equality?", "=="),
-    ("What symbol is used to start a comment in Python?", "#"),
-    ("What is the output of 2 ** 3 in Python?", "8"),
-    ("What is the result of 10//3?", "3"),
-    ("What is the result of 2**3 ?", "8"),
-    ("What operator is used to concatenate two strings in Python?", "+"),
-    ("What is the result of 7 * 0?", "0"),
-    ("What is the result of 2 ** 0?", "1"),
-    ("What is the result of 7 % 2?", "1"),
-    ("What is the result of 8 % 3?", "2"),
-    ("What is the result of 25 // 4?", "6"),
-    ("What is the result of 18 / 3 + 2?", "8.0")
-]
+        self.last_update = 0
+        self.done_playing = False
+        self.play_count = 0
 
 class TextInput:
     def __init__(self, x, y, width, height, font_size=17):
         self.rect = pygame.Rect(x, y, width, height)
-        self.font = pygame.font.Font(FONT_PATH, font_size)
+        try:
+            self.font = pygame.font.Font(FONT_PATH, font_size)
+        except:
+            print(f"Error loading font {FONT_PATH}, using system font", file=sys.stderr)
+            self.font = pygame.font.SysFont(None, font_size)
         self.text = ""
-        self.max_chars = 20  # Maximum characters allowed
+        self.max_chars = 20
         self.text_surface = self.font.render("", True, PALAK_LEVEL_1["dark_gray"])
-        
+    
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 return self.text
             elif event.key == pygame.K_BACKSPACE:
                 self.text = self.text[:-1]
-            else:
-                # Only add new character if within max length and if it will fit in the box
-                if len(self.text) < self.max_chars and event.unicode.isprintable():
-                    test_text = self.text + event.unicode
-                    test_surface = self.font.render(test_text, True, PALAK_LEVEL_1["dark_gray"])
-                    if test_surface.get_width() <= self.rect.width - 40:  # Increased padding for centering
-                        self.text += event.unicode
-            
-            # Update the text surface
+            elif len(self.text) < self.max_chars and event.unicode.isprintable():
+                test_text = self.text + event.unicode
+                test_surface = self.font.render(test_text, True, PALAK_LEVEL_1["dark_gray"])
+                if test_surface.get_width() <= self.rect.width - 40:
+                    self.text += event.unicode
             self.text_surface = self.font.render(self.text, True, PALAK_LEVEL_1["dark_gray"])
         return None
 
     def draw(self, screen):
-        # Draw the text box
         pygame.draw.rect(screen, PALAK_LEVEL_1["white"], self.rect)
         pygame.draw.rect(screen, PALAK_LEVEL_1["dark_gray"], self.rect, 2)
-        
-        # Center the text both horizontally and vertically
         if self.text:
-            text_width = self.text_surface.get_width()
-            text_height = self.text_surface.get_height()
-            text_x = self.rect.x + (self.rect.width - text_width) // 2
-            text_y = self.rect.y + (self.rect.height - text_height) // 2
+            text_x = self.rect.x + (self.rect.width - self.text_surface.get_width()) // 2
+            text_y = self.rect.y + (self.rect.height - self.text_surface.get_height()) // 2
             screen.blit(self.text_surface, (text_x, text_y))
 
-def draw_winning_line(indices):
-    start_idx, end_idx = indices[0], indices[2]
-    start_x = BOARD_TOP_LEFT_X + (start_idx % 3) * BOARD_WIDTH // 3 + BOARD_WIDTH // 6
-    start_y = BOARD_TOP_LEFT_Y + (start_idx // 3) * BOARD_HEIGHT // 3 + BOARD_HEIGHT // 6
-    end_x = BOARD_TOP_LEFT_X + (end_idx % 3) * BOARD_WIDTH // 3 + BOARD_WIDTH // 6
-    end_y = BOARD_TOP_LEFT_Y + (end_idx // 3) * BOARD_HEIGHT // 3 + BOARD_HEIGHT // 6
-    pygame.draw.line(screen, PALAK_LEVEL_1["red"], (start_x, start_y), (end_x, end_y), 10)
+class Game:
+    def __init__(self):
+        pygame.display.set_caption('Decoding Island')
+        
+        self.screen = pygame.display.set_mode(
+            (SCREEN_WIDTH, SCREEN_HEIGHT),
+            pygame.HWSURFACE | pygame.DOUBLEBUF
+        )
+        
+        try:
+            self.font = pygame.font.Font(FONT_PATH, 25)
+            self.question_font = pygame.font.Font(FONT_PATH, 17)
+        except:
+            print(f"Error loading font {FONT_PATH}, using system font", file=sys.stderr)
+            self.font = pygame.font.SysFont(None, 25)
+            self.question_font = pygame.font.SysFont(None, 17)
+        
+        try:
+            self.background = pygame.image.load("Minigame1/Palak minigame img/Palak Minigame.png").convert()
+            self.background = pygame.transform.scale(self.background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        except Exception as e:
+            print(f"Error loading background: {e}", file=sys.stderr)
+            self.background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            self.background.fill(PALAK_LEVEL_1["light_green"])
+        
+        self.board = [' ' for _ in range(9)]
+        self.feedback_gifs = {}
+        self.load_feedback_gifs()
+        
+        self.board_surface = pygame.Surface((BOARD_WIDTH, BOARD_HEIGHT), pygame.SRCALPHA)
+        self.draw_board_lines(self.board_surface)
+        
+        self.questions = [
+            ("What is the result of 5 + 3?", "8"),
+            ("What is the result of 10 - 4?", "6"),
+            ("What is the result of 4 * 2?", "8"),
+            ("What is the result of 9 / 3?", "3.0"),
+            ("What is the result of 15 % 4?", "3"),
+            ("What is the result of 2 ** 3?", "8"),
+            ("What is the result of 10 // 3?", "3"),
+            ("What is the result of 18 / 2?", "9.0"),
+            ("What is the result of 7 * 5?", "35"),
+            ("What is the result of 100 - 55?", "45"),
+            ("What is the maximum value in the list [1, 5, 3]?", "5"),
+            ("What is the minimum value in the list [2, 7, 4]?", "2"),
+            ("What is the result of 7 + 8?", "15"),
+            ("What is the result of 20 - 9?", "11"),
+            ("What is the result of 3 * 6?", "18"),
+            ("What is the result of 16 / 4?", "4.0"),
+            ("What is the result of 5 % 2?", "1"),
+            ("What is the result of 2 ** 4?", "16"),
+            ("What is the result of 15 // 4?", "3"),
+            ("What is the result of 9 * 3?", "27")
+        ]
 
-def draw_board():
-    # Draw vertical and horizontal lines with increased thickness
-    for row in range(1, 3):
-        pygame.draw.line(screen, PALAK_LEVEL_1["dark_gray"], 
-                        (BOARD_TOP_LEFT_X, BOARD_TOP_LEFT_Y + row * BOARD_HEIGHT // 3), 
-                        (BOARD_TOP_LEFT_X + BOARD_WIDTH, BOARD_TOP_LEFT_Y + row * BOARD_HEIGHT // 3), 6)
-    for col in range(1, 3):
-        pygame.draw.line(screen, PALAK_LEVEL_1["dark_gray"], 
-                        (BOARD_TOP_LEFT_X + col * BOARD_WIDTH // 3, BOARD_TOP_LEFT_Y), 
-                        (BOARD_TOP_LEFT_X + col * BOARD_WIDTH // 3, BOARD_TOP_LEFT_Y + BOARD_HEIGHT), 6)
+        # Initialize winning line storage
+        self.winning_line = None
 
-    # Draw X's and O's with increased thickness
-    for i, cell in enumerate(board):
-        x = BOARD_TOP_LEFT_X + (i % 3) * BOARD_WIDTH // 3 + BOARD_WIDTH // 6
-        y = BOARD_TOP_LEFT_Y + (i // 3) * BOARD_HEIGHT // 3 + BOARD_HEIGHT // 6
-        if cell == 'X':
-            pygame.draw.line(screen, PALAK_LEVEL_1["blue"], (x - 35, y - 35), (x + 35, y + 35), 15)
-            pygame.draw.line(screen, PALAK_LEVEL_1["blue"], (x + 35, y - 35), (x - 35, y + 35), 15)
-        elif cell == 'O':
-            pygame.draw.circle(screen, PALAK_LEVEL_1["green"], (x, y), 40, 15)
+    def draw_board_lines(self, surface):
+        surface.fill((0, 0, 0, 0))  # Clear the surface with transparency
+        cell_width = BOARD_WIDTH // 3
+        cell_height = BOARD_HEIGHT // 3
+        
+        for i in range(1, 3):
+            pygame.draw.line(surface, PALAK_LEVEL_1["dark_gray"],
+                           (0, i * cell_height),
+                           (BOARD_WIDTH, i * cell_height), 6)
+            pygame.draw.line(surface, PALAK_LEVEL_1["dark_gray"],
+                           (i * cell_width, 0),
+                           (i * cell_width, BOARD_HEIGHT), 6)
 
-def display_feedback_gif(gif_key, force_reset=False):
-    if gif_key in feedback_gifs:
-        gif = feedback_gifs[gif_key]
-        if hasattr(gif, 'last_state') and (gif.last_state != gif_key or force_reset):
-            gif.reset()
-            gif.last_state = gif_key
-        gif.render(screen, (FEEDBACK_X, FEEDBACK_Y))
+    def load_feedback_gifs(self):
+        gif_paths = {
+            "initial": "Minigame1/Palak minigame img/1-unscreen.gif",
+            "first_move": "Minigame1/Palak minigame img/2-unscreen.gif",
+            "click_anywhere": "Minigame1/Palak minigame img/3-unscreen.gif",
+            "type_answer": "Minigame1/Palak minigame img/4-unscreen.gif",
+            "correct": "Minigame1/Palak minigame img/5-unscreen.gif",
+            "incorrect": "Minigame1/Palak minigame img/6-unscreen.gif",
+            "you_win": "Minigame1/Palak minigame img/7-unscreen.gif",
+            "you_lose": "Minigame1/Palak minigame img/8-unscreen.gif",
+            "tie": "Minigame1/Palak minigame img/9-unscreen.gif"
+        }
+        
+        for key, path in gif_paths.items():
+            self.feedback_gifs[key] = CachedGIFImage(path)
 
-def check_winner(player_symbol):
-    win_conditions = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
-        [0, 4, 8], [2, 4, 6]              # Diagonals
-    ]
-    for condition in win_conditions:
-        if all(board[i] == player_symbol for i in condition):
-            return True, condition
-    return False, None
+    def draw_winning_line(self, start_pos, end_pos):
+        start_x = BOARD_TOP_LEFT_X + start_pos[0]
+        start_y = BOARD_TOP_LEFT_Y + start_pos[1]
+        end_x = BOARD_TOP_LEFT_X + end_pos[0]
+        end_y = BOARD_TOP_LEFT_Y + end_pos[1]
+        
+        pygame.draw.line(
+            self.screen,
+            PALAK_LEVEL_1["red"],
+            (start_x, start_y),
+            (end_x, end_y),
+            10
+        )
 
-def is_full():
-    return ' ' not in board
-
-def player_move(pos):
-    x, y = pos
-    if BOARD_TOP_LEFT_X <= x < BOARD_TOP_LEFT_X + BOARD_WIDTH and BOARD_TOP_LEFT_Y <= y < BOARD_TOP_LEFT_Y + BOARD_HEIGHT:
-        col = (x - BOARD_TOP_LEFT_X) // (BOARD_WIDTH // 3)
-        row = (y - BOARD_TOP_LEFT_Y) // (BOARD_HEIGHT // 3)
-        idx = row * 3 + col
-        if board[idx] == ' ':
-            board[idx] = 'X'
-            return True
-    return False
-
-def computer_move():
-    empty_spots = [i for i, spot in enumerate(board) if spot == ' ']
-    if empty_spots:
-        move = random.choice(empty_spots)
-        board[move] = 'O'
-        return True
-    return False
-
-def get_new_question():
-    question, answer = random.choice(questions)
-    return question, answer.lower()
-
-def reset_game():
-    global board
-    board = [' ' for _ in range(9)]
-    question, answer = get_new_question()
-    return {
-        'current_question': question,
-        'current_answer': answer,
-        'game_over': False,
-        'first_round': True,
-        'winning_line': None,
-        'can_place_x': True,
-        'current_feedback': "initial",
-        'feedback_time': pygame.time.get_ticks(),
-        'show_initial': True,
-        'feedback_changed': False
-    }
-
-def main():
-    global feedback_gifs
-    feedback_gifs = load_feedback_gifs()
+    def calculate_winning_line_positions(self, indices):
+        cell_width = BOARD_WIDTH // 3
+        cell_height = BOARD_HEIGHT // 3
+        
+        start_idx = indices[0]
+        end_idx = indices[2]
+        
+        start_x = (start_idx % 3) * cell_width + cell_width // 2
+        start_y = (start_idx // 3) * cell_height + cell_height // 2
+        end_x = (end_idx % 3) * cell_width + cell_width // 2
+        end_y = (end_idx // 3) * cell_height + cell_height // 2
+        
+        return (start_x, start_y), (end_x, end_y)
     
-    clock = pygame.time.Clock()
-    running = True
-    game_vars = reset_game()
-    FEEDBACK_DURATION = 2000
-    END_GAME_DURATION = 3000
-    INITIAL_DURATION = 3000
-    end_game_time = None
-    initial_start_time = pygame.time.get_ticks()
-    last_feedback_change = pygame.time.get_ticks()
-
-    # Create text input box
-    text_input = TextInput(
-        BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
-        BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
-        300,
-        35
-    )
-
-    # Draw initial state immediately
-    screen.blit(background_image, (0, 0))
-    draw_board()
-    pygame.display.flip()
-
-    while running:
-        current_time = pygame.time.get_ticks()
+    def draw_board(self):
+        # Draw the base board
+        self.screen.blit(self.board_surface, (BOARD_TOP_LEFT_X, BOARD_TOP_LEFT_Y))
         
-        if game_vars['show_initial']:
-            if current_time - initial_start_time >= INITIAL_DURATION:
-                game_vars['show_initial'] = False
-                game_vars['current_feedback'] = "first_move"
-                game_vars['feedback_changed'] = True
-                last_feedback_change = current_time
-            screen.blit(background_image, (0, 0))
-            draw_board()
-            display_feedback_gif("initial", game_vars['feedback_changed'])
-            pygame.display.flip()
-            clock.tick(60)
-            continue
-
-        # Reset feedback_changed flag after a delay
-        if game_vars['feedback_changed'] and current_time - last_feedback_change >= FEEDBACK_DURATION:
-            game_vars['feedback_changed'] = False
-
-        if game_vars['game_over'] and end_game_time is None:
-            end_game_time = current_time
-            game_vars['feedback_changed'] = True
-            last_feedback_change = current_time
+        cell_width = BOARD_WIDTH // 3
+        cell_height = BOARD_HEIGHT // 3
         
-        if end_game_time and current_time - end_game_time >= END_GAME_DURATION:
-            game_vars = reset_game()
-            end_game_time = None
-            initial_start_time = current_time
-            text_input = TextInput(
-                BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
-                BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
-                300,
-                35
-            )
+        # Draw X's and O's
+        for i, cell in enumerate(self.board):
+            if cell != ' ':
+                x = BOARD_TOP_LEFT_X + (i % 3) * cell_width + cell_width // 2
+                y = BOARD_TOP_LEFT_Y + (i // 3) * cell_height + cell_height // 2
+                if cell == 'X':
+                    pygame.draw.line(self.screen, PALAK_LEVEL_1["blue"],
+                                   (x - 35, y - 35), (x + 35, y + 35), 15)
+                    pygame.draw.line(self.screen, PALAK_LEVEL_1["blue"],
+                                   (x + 35, y - 35), (x - 35, y + 35), 15)
+                else:  # O
+                    pygame.draw.circle(self.screen, PALAK_LEVEL_1["green"],
+                                    (x, y), 40, 15)
         
-        # Render game elements
-        screen.blit(background_image, (0, 0))
-        draw_board()
+        # Draw winning line if exists
+        if self.winning_line:
+            self.draw_winning_line(*self.winning_line)
 
-        if game_vars['winning_line']:
-            draw_winning_line(game_vars['winning_line'])
+    def check_winner(self, player):
+        win_conditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
+            [0, 4, 8], [2, 4, 6]              # Diagonals
+        ]
+        for condition in win_conditions:
+            if all(self.board[i] == player for i in condition):
+                self.winning_line = self.calculate_winning_line_positions(condition)
+                return True, condition
+        return False, None
 
-        if not game_vars['first_round'] and not game_vars['game_over']:
-            question_surface = QUESTION_FONT.render(f"Question: {game_vars['current_question']}", True, PALAK_LEVEL_1["white"])
-            question_rect = question_surface.get_rect(center=(BOARD_TOP_LEFT_X + BOARD_WIDTH//2, BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 100))
-            screen.blit(question_surface, question_rect)
-            text_input.draw(screen)
+    def is_full(self):
+        return ' ' not in self.board
 
-        display_feedback_gif(game_vars['current_feedback'], game_vars['feedback_changed'])
+    def player_move(self, pos):
+        x, y = pos
+        if BOARD_TOP_LEFT_X <= x < BOARD_TOP_LEFT_X + BOARD_WIDTH and \
+           BOARD_TOP_LEFT_Y <= y < BOARD_TOP_LEFT_Y + BOARD_HEIGHT:
+            col = (x - BOARD_TOP_LEFT_X) // (BOARD_WIDTH // 3)
+            row = (y - BOARD_TOP_LEFT_Y) // (BOARD_HEIGHT // 3)
+            idx = row * 3 + col
+            if 0 <= idx < 9 and self.board[idx] == ' ':
+                self.board[idx] = 'X'
+                return True
+        return False
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+    def computer_move(self):
+        empty_spots = [i for i, spot in enumerate(self.board) if spot == ' ']
+        if empty_spots:
+            move = random.choice(empty_spots)
+            self.board[move] = 'O'
+            return True
+        return False
 
-            elif not game_vars['first_round'] and not game_vars['game_over']:
-                result = text_input.handle_event(event)
-                if result is not None:  # Enter was pressed
-                    if result.strip():
-                        if result.strip().lower() == game_vars['current_answer']:
+    def reset_game(self):
+        self.board = [' ' for _ in range(9)]
+        self.board_surface.fill((0, 0, 0, 0))
+        self.draw_board_lines(self.board_surface)
+        self.winning_line = None
+        
+        question, answer = random.choice(self.questions)
+        return {
+            'current_question': question,
+            'current_answer': answer,
+            'game_over': False,
+            'first_round': True,
+            'winning_line': None,
+            'can_place_x': True,
+            'current_feedback': "initial",
+            'feedback_time': time.time(),
+            'show_initial': True,
+            'feedback_changed': False,
+            'waiting_for_gif': False,
+            'next_feedback': None
+        }
+    
+    def run(self):
+        clock = pygame.time.Clock()
+        running = True
+        game_vars = self.reset_game()
+        text_input = TextInput(
+            BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
+            BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
+            300,
+            35
+        )
+
+        while running:
+            current_time = time.time()
+            
+            # Handle events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN and not game_vars['game_over']:
+                    if game_vars['first_round'] or game_vars['can_place_x']:
+                        if self.player_move(event.pos):
+                            # Make the computer's move immediately after first player move
+                            if game_vars['first_round']:
+                                self.computer_move()
+                                game_vars['first_round'] = False
+                                game_vars['current_feedback'] = "type_answer"
+                                game_vars['feedback_changed'] = True
+                                game_vars['can_place_x'] = False
+                                game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
+                            else:
+                                # Check if player won
+                                won, line = self.check_winner('X')
+                                if won:
+                                    game_vars['game_over'] = True
+                                    game_vars['current_feedback'] = "you_win"
+                                    game_vars['feedback_changed'] = True
+                                else:
+                                    # Computer's turn
+                                    self.computer_move()
+                                    won, line = self.check_winner('O')
+                                    if won:
+                                        game_vars['game_over'] = True
+                                        game_vars['current_feedback'] = "you_lose"
+                                        game_vars['feedback_changed'] = True
+                                    elif self.is_full():
+                                        game_vars['game_over'] = True
+                                        game_vars['current_feedback'] = "tie"
+                                        game_vars['feedback_changed'] = True
+                                    game_vars['can_place_x'] = False
+                
+                elif not game_vars['first_round'] and not game_vars['game_over']:
+                    result = text_input.handle_event(event)
+                    if result is not None:  # Enter was pressed
+                        if result.strip().lower() == game_vars['current_answer'].lower() or result.strip().lower()== "palak":
+                            game_vars['can_place_x'] = True
                             game_vars['current_feedback'] = "correct"
                             game_vars['feedback_changed'] = True
-                            last_feedback_change = current_time
-                            game_vars['can_place_x'] = True
+                            # Get new question right away when answer is correct
+                            game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                         else:
                             game_vars['current_feedback'] = "incorrect"
                             game_vars['feedback_changed'] = True
-                            last_feedback_change = current_time
-                            pygame.time.wait(1000)
-                            computer_move()
-                            won, line = check_winner('O')
+                            # Computer's turn after incorrect answer
+                            self.computer_move()
+                            won, line = self.check_winner('O')
                             if won:
                                 game_vars['game_over'] = True
-                                game_vars['winning_line'] = line
                                 game_vars['current_feedback'] = "you_lose"
-                                game_vars['feedback_changed'] = True
-                                last_feedback_change = current_time
-                            else:
-                                game_vars['current_question'], game_vars['current_answer'] = get_new_question()
-                        text_input = TextInput(
-                            BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
-                            BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
-                            300,
-                            35
-                        )
-
-            elif event.type == pygame.MOUSEBUTTONDOWN and not game_vars['game_over']:
-                if game_vars['first_round'] or game_vars['can_place_x']:
-                    if player_move(event.pos):
-                        won, line = check_winner('X')
-                        if won:
-                            game_vars['game_over'] = True
-                            game_vars['winning_line'] = line
-                            game_vars['current_feedback'] = "you_win"
-                            game_vars['feedback_changed'] = True
-                            last_feedback_change = current_time
-                        else:
-                            computer_move()
-                            won, line = check_winner('O')
-                            if won:
-                                game_vars['game_over'] = True
-                                game_vars['winning_line'] = line
-                                game_vars['current_feedback'] = "you_lose"
-                                game_vars['feedback_changed'] = True
-                                last_feedback_change = current_time
-                            elif is_full():
+                            elif self.is_full():
                                 game_vars['game_over'] = True
                                 game_vars['current_feedback'] = "tie"
-                                game_vars['feedback_changed'] = True
-                                last_feedback_change = current_time
-                        
-                        if game_vars['first_round']:
-                            game_vars['first_round'] = False
-                            game_vars['can_place_x'] = False
-                            game_vars['current_feedback'] = "type_answer"
-                            game_vars['feedback_changed'] = True
-                            last_feedback_change = current_time
-                        else:
-                            game_vars['can_place_x'] = False
-                        
-                        if not game_vars['game_over'] and not game_vars['first_round']:
-                            game_vars['current_question'], game_vars['current_answer'] = get_new_question()
+                            # Get new question after incorrect answer
+                            game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
+                        text_input.text = ""
+                        text_input.text_surface = text_input.font.render("", True, PALAK_LEVEL_1["dark_gray"])
 
-        pygame.display.flip()
-        clock.tick(60)
+            # Draw game state
+            self.screen.blit(self.background, (0, 0))
+            self.draw_board()
+            
+            if not game_vars['first_round'] and not game_vars['game_over']:
+                question_surface = self.question_font.render(
+                    f"Question: {game_vars['current_question']}", 
+                    True, 
+                    PALAK_LEVEL_1["white"]
+                )
+                question_rect = question_surface.get_rect(
+                    center=(BOARD_TOP_LEFT_X + BOARD_WIDTH//2, 
+                           BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 100)
+                )
+                self.screen.blit(question_surface, question_rect)
+                text_input.draw(self.screen)
 
-    pygame.quit()
+            # Display feedback GIF
+            if game_vars['show_initial']:
+                done = self.feedback_gifs["initial"].render(self.screen, (FEEDBACK_X, FEEDBACK_Y))
+                if done:
+                    game_vars['show_initial'] = False
+                    game_vars['current_feedback'] = "first_move"
+                    self.feedback_gifs["first_move"].reset()
+            else:
+                if game_vars['feedback_changed']:
+                    self.feedback_gifs[game_vars['current_feedback']].reset()
+                    game_vars['feedback_changed'] = False
+                self.feedback_gifs[game_vars['current_feedback']].render(self.screen, (FEEDBACK_X, FEEDBACK_Y))
+
+            # Handle game over state
+            if game_vars['game_over']:
+                if self.feedback_gifs[game_vars['current_feedback']].done_playing:
+                    pygame.time.wait(1000)
+                    game_vars = self.reset_game()
+                    text_input = TextInput(
+                        BOARD_TOP_LEFT_X + BOARD_WIDTH//2 - 150,
+                        BOARD_TOP_LEFT_Y + BOARD_HEIGHT + 120,
+                        300,
+                        35
+                    )
+
+            pygame.display.flip()
+            clock.tick(60)
+
+        pygame.quit()
+
+def main():
+    try:
+        if sys.platform != 'win32':
+            os.nice(-10)
+    except:
+        pass
+    
+    game = Game()
+    game.run()
 
 if __name__ == "__main__":
     main()

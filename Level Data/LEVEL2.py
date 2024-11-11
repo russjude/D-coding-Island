@@ -20,6 +20,8 @@ target_height = int(monitor_height * SCREEN_SCALE)
 
 # Load and scale the background
 original_bg = pygame.image.load('Level Data/Level Image/LEVEL2.png')
+
+
 bg_aspect_ratio = original_bg.get_width() / original_bg.get_height()
 
 # Adjust window size to maintain aspect ratio
@@ -228,8 +230,8 @@ class World:
             # 3rd layer
             (47.9, 20, 4.7, 1),
             (29.85, 20, 1.3, 1),
-            (13.4, 21.7, 6.2, 1),
-            (9.9, 20.1, 1.7, 1),
+            (13.6, 21.7, 6, 1),
+            (9.9, 20.1, 1.4, 1),
 
             # 2nd layer
             (48, 26.7, 6.2, 1),
@@ -287,10 +289,11 @@ class World:
 
 # Add this with other game data at the top
 ENEMY_DATA = [
-    (17, 33.4, "horizontal", 17, 32),
-    (36.2, 22, "horizontal", 36.2, 41.2),
-    (50.5, 10.6, "horizontal", 50.5, 56),
-    (18.5, 19, "horizontal", 18.5, 27.2)
+        (8.5, 24, "horizontal", 8.5, 20),
+        (0.2, 17.2, "horizontal", 0.2, 8.7),
+        (44.5, 30.5, "horizontal", 44, 58.5),
+        (35, 14, "horizontal", 35, 41),
+        (52.3, 9.1, "horizontal", 52.3, 58.5),
 ]
 
 class MovingEnemy(pygame.sprite.Sprite):

@@ -327,29 +327,19 @@ ENEMY_DATA = [
             (0, 4.2, "horizontal", 0, 9.5),
             (0, 12.5, "horizontal", 0, 11.4),
 
-
-
-
             (10, 25.7, "horizontal", 10, 18.2),
 
-
-
             (41, 25.7, "horizontal", 41, 45),
-
-
-
 
             (16.5, 19, "horizontal", 16.5, 22.3),
             
             (38, 19, "horizontal", 38, 42),
-
 
             (19.8, 12.5, "horizontal", 19.8, 24),
 
             (34.4, 12.5, "horizontal", 34.4, 39.7),
             (42.9, 4.3, "horizontal", 42.9, 48.9),
             (51, 14, "horizontal", 51, 59),
-
 
             (44, 32.2, "horizontal", 44, 49),
             (10, 32.2, "horizontal", 10, 14)
