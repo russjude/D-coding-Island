@@ -2674,8 +2674,6 @@ class Player(pygame.sprite.Sprite):
             self.vel_y = 0  # Reset vertical velocity
             return game_over
 
-        if self.dead:
-            return game_over  
         
         # Normal movement code here
         if camera.transition_complete:
@@ -3435,13 +3433,22 @@ while running:
         # Always update door animation
         door.update()
         
-        # Check level completion
         if keys_collected >= LEVEL_REQUIREMENTS[current_level]:
             if not door.is_open:
                 camera.start_door_zoom(door)
             elif pygame.sprite.collide_rect(player, door) and not door.entered:
                 door.entered = True
                 camera.stop_sounds()
+                
+                # Add minigame check here
+                if current_level > 0:  # Skip minigame for tutorial level
+                    minigame_result = load_minigame(current_level)
+                    if not minigame_result:
+                        # If minigame wasn't completed, reset door state and return
+                        door.entered = False
+                        door.is_open = False
+                        door.sound_played = False
+                        continue
                 
                 level_complete_mapping = {
                     0: (1, 7),    # Tutorial -> Level 1, Scene 8

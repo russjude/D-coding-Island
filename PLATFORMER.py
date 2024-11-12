@@ -1094,7 +1094,8 @@ class Scene:
         # Load background image
         if 'image' in self.scene_data:
             try:
-                self.bg_image = pygame.image.load(self.scene_data['image'])
+                self.bg_image = WINDOWSHOWN
+                pygame.image.load(self.scene_data['image'])
                 self.bg_image = pygame.transform.scale(self.bg_image, self.screen.get_size())
             except pygame.error:
                 print(f"Could not load image: {self.scene_data['image']}")
