@@ -6,8 +6,6 @@ import os
 import sys
 from pathlib import Path
 
-pygame.init()
-
 # Constants
 SCREEN_WIDTH = 1539
 SCREEN_HEIGHT = 940
@@ -116,13 +114,20 @@ class TextInput:
 
 class Game:
     def __init__(self):
-        pygame.display.set_caption('Decoding Island')
-        
+        # Don't initialize pygame here since it's already initialized
+        # Just check if we need to reset the display
+        if not pygame.get_init() or not pygame.display.get_surface():
+            pygame.init()
+            
+        if not pygame.mixer.get_init():
+            pygame.mixer.init(44100, -16, 2, 512)
+            
         self.screen = pygame.display.set_mode(
             (SCREEN_WIDTH, SCREEN_HEIGHT),
             pygame.HWSURFACE | pygame.DOUBLEBUF
         )
-        
+        pygame.display.set_caption('Decoding Island')
+
         try:
             self.font = pygame.font.Font(FONT_PATH, 25)
             self.question_font = pygame.font.Font(FONT_PATH, 17)
@@ -130,7 +135,7 @@ class Game:
             print(f"Error loading font {FONT_PATH}, using system font", file=sys.stderr)
             self.font = pygame.font.SysFont(None, 25)
             self.question_font = pygame.font.SysFont(None, 17)
-        
+
         try:
             self.background = pygame.image.load("Minigame1/Palak minigame img/Palak Minigame.png").convert()
             self.background = pygame.transform.scale(self.background, (SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -138,23 +143,23 @@ class Game:
             print(f"Error loading background: {e}", file=sys.stderr)
             self.background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
             self.background.fill(PALAK_LEVEL_1["light_green"])
-        
+
         self.board = [' ' for _ in range(9)]
         self.feedback_gifs = {}
         self.load_feedback_gifs()
-        
         self.board_surface = pygame.Surface((BOARD_WIDTH, BOARD_HEIGHT), pygame.SRCALPHA)
         self.draw_board_lines(self.board_surface)
         
+        # Your existing questions list here
         self.questions = [
             ("What is the result of 5 + 3?", "8"),
             ("What is the result of 10 - 4?", "6"),
             ("What is the result of 4 * 2?", "8"),
-            ("What is the result of 9 / 3?", "3.0"),
+            ("What is the result of 9 / 3?", "3"),
             ("What is the result of 15 % 4?", "3"),
             ("What is the result of 2 ** 3?", "8"),
             ("What is the result of 10 // 3?", "3"),
-            ("What is the result of 18 / 2?", "9.0"),
+            ("What is the result of 18 / 2?", "9"),
             ("What is the result of 7 * 5?", "35"),
             ("What is the result of 100 - 55?", "45"),
             ("What is the maximum value in the list [1, 5, 3]?", "5"),
@@ -162,18 +167,20 @@ class Game:
             ("What is the result of 7 + 8?", "15"),
             ("What is the result of 20 - 9?", "11"),
             ("What is the result of 3 * 6?", "18"),
-            ("What is the result of 16 / 4?", "4.0"),
+            ("What is the result of 16 / 4?", "4"),
             ("What is the result of 5 % 2?", "1"),
             ("What is the result of 2 ** 4?", "16"),
             ("What is the result of 15 // 4?", "3"),
             ("What is the result of 9 * 3?", "27")
         ]
-
-        # Initialize winning line storage
+        
         self.winning_line = None
+        self.resources_loaded = True
+        self.current_animation = "initial"
+        self.restart_timer = None
 
     def draw_board_lines(self, surface):
-        surface.fill((0, 0, 0, 0))  # Clear the surface with transparency
+        surface.fill((0, 0, 0, 0))
         cell_width = BOARD_WIDTH // 3
         cell_height = BOARD_HEIGHT // 3
         
@@ -230,13 +237,11 @@ class Game:
         return (start_x, start_y), (end_x, end_y)
     
     def draw_board(self):
-        # Draw the base board
         self.screen.blit(self.board_surface, (BOARD_TOP_LEFT_X, BOARD_TOP_LEFT_Y))
         
         cell_width = BOARD_WIDTH // 3
         cell_height = BOARD_HEIGHT // 3
         
-        # Draw X's and O's
         for i, cell in enumerate(self.board):
             if cell != ' ':
                 x = BOARD_TOP_LEFT_X + (i % 3) * cell_width + cell_width // 2
@@ -246,11 +251,10 @@ class Game:
                                    (x - 35, y - 35), (x + 35, y + 35), 15)
                     pygame.draw.line(self.screen, PALAK_LEVEL_1["blue"],
                                    (x + 35, y - 35), (x - 35, y + 35), 15)
-                else:  # O
+                else:
                     pygame.draw.circle(self.screen, PALAK_LEVEL_1["green"],
                                     (x, y), 40, 15)
         
-        # Draw winning line if exists
         if self.winning_line:
             self.draw_winning_line(*self.winning_line)
 
@@ -294,6 +298,7 @@ class Game:
         self.board_surface.fill((0, 0, 0, 0))
         self.draw_board_lines(self.board_surface)
         self.winning_line = None
+        self.current_animation = "initial"
         
         question, answer = random.choice(self.questions)
         return {
@@ -301,17 +306,126 @@ class Game:
             'current_answer': answer,
             'game_over': False,
             'first_round': True,
-            'winning_line': None,
-            'can_place_x': True,
-            'current_feedback': "initial",
-            'feedback_time': time.time(),
-            'show_initial': True,
-            'feedback_changed': False,
-            'waiting_for_gif': False,
-            'next_feedback': None
+            'can_place_x': True
         }
+
+    def validate_answer(self, user_answer, correct_answer):
+        user_answer = user_answer.strip().lower()
+        correct_answer = str(correct_answer).strip().lower()
+        
+        try:
+            user_float = float(user_answer)
+            correct_float = float(correct_answer)
+            return abs(user_float - correct_float) < 0.0001
+        except ValueError:
+            return user_answer == correct_answer or user_answer == "palak"
+
+    def draw_feedback(self):
+        if self.current_animation and self.current_animation in self.feedback_gifs:
+            done = self.feedback_gifs[self.current_animation].render(
+                self.screen, 
+                (FEEDBACK_X, FEEDBACK_Y)
+            )
+            if done:
+                if self.current_animation == "initial":
+                    self.current_animation = "click_anywhere"
+                    self.feedback_gifs[self.current_animation].reset()
+                elif self.current_animation == "click_anywhere":
+                    self.current_animation = None
+                else:
+                    self.current_animation = None
+
+    def handle_lose(self):
+        """Handle loss with automatic restart"""
+        if not pygame.display.get_surface():
+            return False
+            
+        self.current_animation = "you_lose"
+        self.feedback_gifs[self.current_animation].reset()
+        self.restart_timer = time.time()
+        
+        while time.time() - self.restart_timer < 2.0:
+            if not pygame.display.get_surface():
+                return False
+                
+            self.screen.blit(self.background, (0, 0))
+            self.draw_board()
+            self.draw_feedback()
+            pygame.display.flip()
+            pygame.time.wait(50)
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+        
+        return 'restart'
+
+    def handle_tie(self):
+        """Handle tie with automatic restart"""
+        if not pygame.display.get_surface():
+            return False
+            
+        self.current_animation = "tie"
+        self.feedback_gifs[self.current_animation].reset()
+        self.restart_timer = time.time()
+        
+        while time.time() - self.restart_timer < 2.0:
+            if not pygame.display.get_surface():
+                return False
+                
+            self.screen.blit(self.background, (0, 0))
+            self.draw_board()
+            self.draw_feedback()
+            pygame.display.flip()
+            pygame.time.wait(50)
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+        
+        return 'restart'
+
+    def handle_win(self):
+        """Handle win with proper cleanup"""
+        if not pygame.display.get_surface():
+            return False
+            
+        self.current_animation = "you_win"
+        self.feedback_gifs[self.current_animation].reset()
+        
+        start_time = time.time()
+        while time.time() - start_time < 2.0:
+            if not pygame.display.get_surface():
+                return False
+                
+            self.screen.blit(self.background, (0, 0))
+            self.draw_board()
+            self.draw_feedback()
+            pygame.display.flip()
+            pygame.time.wait(50)
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+        return True
+
+    def cleanup(self):
+        """Safe cleanup that preserves pygame instance"""
+        try:
+            if pygame.mixer.get_init():
+                pygame.mixer.stop()  # Stop all sound channels
+            # Don't quit pygame, just clean up our resources
+            self.board = [' ' for _ in range(9)]
+            self.winning_line = None
+            self.current_animation = None
+            self.restart_timer = None
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
     
     def run(self):
+        if not pygame.display.get_surface():
+            return False
+            
         clock = pygame.time.Clock()
         running = True
         game_vars = self.reset_game()
@@ -321,64 +435,60 @@ class Game:
             300,
             35
         )
-        won = False  # Track if player has won
+
         while running:
-            current_time = time.time()
-            
             # Handle events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
+                    self.cleanup()
                     return False
                     
                 elif event.type == pygame.MOUSEBUTTONDOWN and not game_vars['game_over']:
                     if game_vars['first_round'] or game_vars['can_place_x']:
                         if self.player_move(event.pos):
-                            # Make the computer's move immediately after first player move
                             if game_vars['first_round']:
                                 self.computer_move()
                                 game_vars['first_round'] = False
-                                game_vars['current_feedback'] = "type_answer"
-                                game_vars['feedback_changed'] = True
+                                self.current_animation = "type_answer"
                                 game_vars['can_place_x'] = False
                                 game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                             else:
-                                # Check if player won
-                                won, line = self.check_winner('X')
+                                won, _ = self.check_winner('X')
                                 if won:
-                                    # Draw final state
-                                    self.screen.blit(self.background, (0, 0))
-                                    self.draw_board()
-                                    pygame.display.flip()
-                                    pygame.time.wait(1000)  # Brief delay to show final state
-                                    pygame.quit()
-                                    return True  # Immediately return True when player wins
-                                    
+                                    if self.handle_win():
+                                        self.cleanup()
+                                        return True
+                                    else:
+                                        self.cleanup()
+                                        return False
                                 else:
-                                    # Computer's turn
                                     self.computer_move()
-                                    won, line = self.check_winner('O')
+                                    won, _ = self.check_winner('O')
                                     if won:
+                                        self.handle_lose()
                                         game_vars['game_over'] = True
                                     elif self.is_full():
+                                        self.current_animation = "tie"
                                         game_vars['game_over'] = True
                                     game_vars['can_place_x'] = False
                 
                 elif not game_vars['first_round'] and not game_vars['game_over']:
                     result = text_input.handle_event(event)
-                    if result is not None:  # Enter was pressed
-                        if result.strip().lower() == game_vars['current_answer'].lower() or result.strip().lower()== "palak":
+                    if result is not None:
+                        if self.validate_answer(result, game_vars['current_answer']):
+                            self.current_animation = "correct"
                             game_vars['can_place_x'] = True
                             game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                         else:
-                            # Computer's turn after incorrect answer
+                            self.current_animation = "incorrect"
                             self.computer_move()
-                            won, line = self.check_winner('O')
+                            won, _ = self.check_winner('O')
                             if won:
+                                self.handle_lose()
                                 game_vars['game_over'] = True
                             elif self.is_full():
+                                self.current_animation = "tie"
                                 game_vars['game_over'] = True
-                            # Get new question after incorrect answer
                             game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                         text_input.text = ""
                         text_input.text_surface = text_input.font.render("", True, PALAK_LEVEL_1["dark_gray"])
@@ -386,6 +496,7 @@ class Game:
             # Draw game state
             self.screen.blit(self.background, (0, 0))
             self.draw_board()
+            self.draw_feedback()
             
             if not game_vars['first_round'] and not game_vars['game_over']:
                 question_surface = self.question_font.render(
@@ -403,12 +514,30 @@ class Game:
             pygame.display.flip()
             clock.tick(60)
 
-        pygame.quit()
+        self.cleanup()
         return False
 
 def main():
-    game = Game()
-    return game.run()  # Return the game result
+    try:
+        if not pygame.get_init():
+            pygame.init()
+        if not pygame.mixer.get_init():
+            pygame.mixer.init(44100, -16, 2, 512)
+            
+        game = Game()
+        result = game.run()
+        game.cleanup()
+        return result
+
+    except Exception as e:
+            print(f"Error in main: {e}")
+            # Try to cleanup safely
+            try:
+                if pygame.mixer.get_init():
+                    pygame.mixer.stop()
+            except:
+                    pass
+            return False
 
 if __name__ == "__main__":
     main()

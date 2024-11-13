@@ -9,6 +9,8 @@ import random
 from os.path import join, exists
 from PIL import Image
 import time
+import os
+import traceback
 
 # Start up pygame
 pygame.init()
@@ -482,80 +484,146 @@ def run_level(screen, level_num, questions, answers, time_limit, background):
     return None
 
 def match_game():
-    """Main game function with two levels and reset functionality"""
-    pygame.init()
-    screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Programming Quiz Battle")
-    
-    running = True
-    while running:  # Main game loop for restart functionality
+    """Main game function with proper error handling"""
+    try:
+        # Initialize display
+        screen = pygame.display.set_mode((screen_width, screen_height))
+        pygame.display.set_caption("Programming Quiz Battle")
+
+        # Validate assets
         try:
-            # Initial setup and asset validation
             validate_assets()
-            
-            # Load background with error handling
+        except FileNotFoundError as e:
+            print(f"Error: Missing required assets - {e}")
+            return False
+
+        # Load background
+        try:
+            background = pygame.image.load('Minigame5/Jacobo Background.png')
+            background = pygame.transform.scale(background, (screen_width, screen_height))
+        except pygame.error as e:
+            print(f"Error loading background: {e}")
+            background = pygame.Surface((screen_width, screen_height))
+            background.fill((40, 40, 40))
+
+        running = True
+        while running:
             try:
-                background = pygame.image.load('Minigame5/Jacobo Background.png')
-                background = pygame.transform.scale(background, (screen_width, screen_height))
-            except pygame.error as e:
-                print(f"Error loading background: {e}")
-                background = pygame.Surface((screen_width, screen_height))
-                background.fill(GRAY)
-            
-            # Run Level 1
-            level1_results = run_level(screen, 1, questions_level1, answers_level1, 60, background)
-            
-            if level1_results is None:  # Window was closed
-                running = False
+                # Run Level 1
+                level1_results = run_level(screen, 1, questions_level1, answers_level1, 60, background)
+                
+                if level1_results is None:  # Window was closed
+                    running = False
+                    continue
+                
+                if level1_results['success']:
+                    # Play transition based on completion time
+                    if level1_results['time'] <= 30:
+                        play_gif_sequence(screen, 'Minigame5/Jacobo Fast.gif', 2, player_health=level1_results['health'])
+                        time_for_level2 = 45
+                    else:
+                        play_gif_sequence(screen, 'Minigame5/Jacobo Slow.gif', 2, player_health=level1_results['health'])
+                        time_for_level2 = 30
+                    
+                    play_gif_sequence(screen, 'Minigame5/Jacobo Inst1.gif', 2, player_health=level1_results['health'])
+                    play_gif_sequence(screen, 'Minigame5/Jacobo Inst2.gif', 2, player_health=level1_results['health'])
+                    
+                    # Run Level 2
+                    level2_results = run_level(screen, 2, questions_level2, answers_level2, 
+                                           time_for_level2, background)
+                    
+                    if level2_results is None:
+                        running = False
+                        continue
+                    
+                    if level2_results['success']:
+                        play_gif_sequence(screen, 'Minigame5/Jacobo Win.gif', 3, player_health=level2_results['health'])
+                        return True
+                    else:
+                        play_gif_sequence(screen, 'Minigame5/Jacobo Lost.gif', 3, player_health=level2_results['health'])
+                        pygame.time.wait(2000)
+                else:
+                    play_gif_sequence(screen, 'Minigame5/Jacobo Lost.gif', 3, player_health=level1_results['health'])
+                    pygame.time.wait(2000)
+                
+            except Exception as e:
+                print(f"Error during gameplay: {e}")
+                traceback.print_exc()
+                pygame.time.wait(2000)
                 continue
+
+        return False
+
+    except Exception as e:
+        print(f"Critical error in match_game: {e}")
+        traceback.print_exc()
+        return False
+
+def main():
+    """Main function for minigame 5 with proper initialization and cleanup"""
+    try:
+        # Store original display settings
+        original_dir = os.getcwd()
+        original_display = None
+        if pygame.display.get_surface():
+            original_display = pygame.display.get_surface().copy()
+            was_fullscreen = bool(pygame.display.get_surface().get_flags() & pygame.FULLSCREEN)
+            original_resolution = pygame.display.get_surface().get_size()
             
-            if level1_results['success']:
-                # Play transition based on completion time
-                if level1_results['time'] <= 30:
-                    play_gif_sequence(screen, 'Minigame5/Jacobo Fast.gif', 2, player_health=level1_results['health'])
-                    time_for_level2 = 45  # Bonus time for fast players
+        # Initialize pygame if needed
+        if not pygame.get_init():
+            pygame.init()
+        if not pygame.mixer.get_init():
+            try:
+                pygame.mixer.init(44100, -16, 2, 512)
+            except pygame.error:
+                print("Warning: Could not initialize sound mixer")
+        
+        # Run the game
+        result = match_game()
+        
+        # Show completion message
+        if result:
+            screen = pygame.display.set_mode((screen_width, screen_height))
+            screen.fill((0, 0, 0))
+            font = pygame.font.SysFont('Bauhaus 93', 32)
+            text = font.render("Challenge Complete! Returning to main game...", True, (255, 255, 255))
+            text_rect = text.get_rect(center=(screen_width//2, screen_height//2))
+            screen.blit(text, text_rect)
+            pygame.display.flip()
+            pygame.time.wait(1500)
+        
+        # Cleanup and return to original state
+        if pygame.mixer.get_init():
+            pygame.mixer.stop()
+        
+        # Restore original display if exists
+        if original_display and original_resolution:
+            try:
+                if was_fullscreen:
+                    screen = pygame.display.set_mode(original_resolution, pygame.FULLSCREEN)
                 else:
-                    play_gif_sequence(screen, 'Minigame5/Jacobo Slow.gif', 2, player_health=level1_results['health'])
-                    time_for_level2 = 30
+                    screen = pygame.display.set_mode(original_resolution)
+                pygame.display.set_caption('Decoding Island')
+            except pygame.error as e:
+                print(f"Error restoring display: {e}")
                 
-                # Play instruction sequences
-                play_gif_sequence(screen, 'Minigame5/Jacobo Inst1.gif', 2, player_health=level1_results['health'])
-                play_gif_sequence(screen, 'Minigame5/Jacobo Inst2.gif', 2, player_health=level1_results['health'])
-                
-                # Run Level 2 with reset health values
-                level2_results = run_level(screen, 2, questions_level2, answers_level2, 
-                                         time_for_level2, background)
-                
-                if level2_results is None:  # Window was closed
-                    running = False
-                    continue
-                
-                if level2_results['success']:
-                    # Play victory animation
-                    if not play_gif_sequence(screen, 'Minigame5/Jacobo Win.gif', 3, player_health=level2_results['health']):
-                        running = False
-                        continue
-                    running = False  # Exit on victory
-                else:
-                    # Play defeat animation and continue loop
-                    if not play_gif_sequence(screen, 'Minigame5/Jacobo Lost.gif', 3, player_health=level2_results['health']):
-                        running = False
-                        continue
-                    pygame.time.wait(2000)  # Brief pause before restart
-            else:
-                # Play defeat animation and continue loop
-                if not play_gif_sequence(screen, 'Minigame5/Jacobo Lost.gif', 3, player_health=level1_results['health']):
-                    running = False
-                    continue
-                pygame.time.wait(2000)  # Brief pause before restart
-            
-        except Exception as e:
-            print(f"Game error: {e}")
-            pygame.time.wait(2000)  # Brief pause before restart
-            continue  # Continue the loop instead of breaking
-    
-    pygame.quit()
-    return False
+        return result
+        
+    except Exception as e:
+        print(f"Error in minigame 5: {e}")
+        traceback.print_exc()
+        return False
+    finally:
+        # Always restore original directory and cleanup
+        if 'original_dir' in locals():
+            os.chdir(original_dir)
+        try:
+            if pygame.mixer.get_init():
+                pygame.mixer.stop()
+                pygame.mixer.music.stop()
+        except:
+            pass
 
 if __name__ == "__main__":
-    match_game()
+    main()

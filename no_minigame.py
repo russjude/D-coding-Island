@@ -14,81 +14,122 @@ import sys
 def load_minigame(level):
     """Load and run a minigame module when needed"""
     try:
-        # Stop any ongoing sounds and music
+        # Store original working directory and display settings
+        original_dir = os.getcwd()
+        original_display = None
+        if pygame.display.get_surface():
+            original_display = pygame.display.get_surface().copy()
+        
+        # Store Pygame state
+        was_fullscreen = bool(pygame.display.get_surface().get_flags() & pygame.FULLSCREEN)
+        original_resolution = pygame.display.get_surface().get_size()
+        
+        # Ensure mixer is initialized but don't reinitialize if already running
+        if not pygame.mixer.get_init():
+            try:
+                pygame.mixer.init(44100, -16, 2, 512)
+            except pygame.error:
+                print("Warning: Could not initialize sound mixer")
+        
+        # Temporarily stop sounds without quitting mixer
         pygame.mixer.stop()
         pygame.mixer.music.stop()
         
-        # Store current display settings
-        current_display = pygame.display.get_surface().copy()
-        
         result = False
         
-        # Map levels to their corresponding minigame modules
-        minigame_modules = {
-            1: 'mini_game1',
-            2: 'mini_game2',
-            3: 'mini_game3',
-            4: 'mini_game4',
-            5: 'mini_game5'
-        }
-        
-        if level in minigame_modules:
+        if level in range(1, 6):  # levels 1-5
             try:
-                # Import the corresponding minigame module
-                minigame = __import__(minigame_modules[level])
-                result = minigame.main()  # Run the minigame
+                # Run the minigame
+                from importlib import import_module
+                minigame = import_module(f'mini_game{level}')
+                result = minigame.main()
+                
+                # Proper cleanup after minigame
+                if pygame.mixer.get_init():
+                    pygame.mixer.stop()
+                
+                # Restore original display mode
+                try:
+                    if was_fullscreen:
+                        screen = pygame.display.set_mode(original_resolution, pygame.FULLSCREEN)
+                    else:
+                        screen = pygame.display.set_mode(original_resolution)
+                    
+                    pygame.display.set_caption('Decoding Island')
+                    
+                    # Clear the screen
+                    screen.fill((0, 0, 0))
+                    pygame.display.flip()
+                except pygame.error as e:
+                    print(f"Error restoring display: {e}")
+                    # Try one more time with default resolution
+                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+                
+                # Return to original directory
+                os.chdir(original_dir)
+                
+                # Reinitialize game components
+                init_game()
+                
             except ImportError as e:
                 print(f"Could not load minigame module for level {level}: {e}")
+                os.chdir(original_dir)
                 return False
             except Exception as e:
                 print(f"Error running minigame {level}: {e}")
+                os.chdir(original_dir)
                 return False
-                
-        # Reset display mode and caption
-        pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption('Decoding Island')
         
         # Show message if minigame wasn't completed
-        if not result:
+        if not result and pygame.display.get_surface() and original_display:
             screen = pygame.display.get_surface()
-            screen.blit(current_display, (0, 0))
+            screen.blit(original_display, (0, 0))
             
             # Create semi-transparent overlay
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 180))
             screen.blit(overlay, (0, 0))
             
             # Show message
-            font = pygame.font.SysFont('Bauhaus 93', 32)
-            text1 = font.render("You must complete the minigame to proceed!", True, (255, 255, 255))
-            text2 = font.render("Press any key to try again...", True, (255, 255, 255))
-            
-            text1_rect = text1.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 20))
-            text2_rect = text2.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 20))
-            
-            screen.blit(text1, text1_rect)
-            screen.blit(text2, text2_rect)
-            pygame.display.flip()
-            
-            # Wait for keypress
-            waiting = True
-            while waiting:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        return False
-                    if event.type == pygame.KEYDOWN:
-                        waiting = False
-                pygame.time.wait(100)
-            
-            # Try the minigame again
-            return load_minigame(level)
-            
+            try:
+                font = pygame.font.SysFont('Bauhaus 93', 32)
+                text1 = font.render("You must complete the minigame to proceed!", True, (255, 255, 255))
+                text2 = font.render("Press any key to try again...", True, (255, 255, 255))
+                
+                text1_rect = text1.get_rect(center=(screen.get_width()//2, screen.get_height()//2 - 20))
+                text2_rect = text2.get_rect(center=(screen.get_width()//2, screen.get_height()//2 + 20))
+                
+                screen.blit(text1, text1_rect)
+                screen.blit(text2, text2_rect)
+                pygame.display.flip()
+                
+                # Wait for keypress
+                waiting = True
+                while waiting:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            return False
+                        if event.type == pygame.KEYDOWN:
+                            waiting = False
+                    pygame.time.wait(100)
+                
+                # Try the minigame again
+                return load_minigame(level)
+            except pygame.error as e:
+                print(f"Error showing retry message: {e}")
+                return False
+        
         return result
         
     except Exception as e:
         print(f"Error in load_minigame: {e}")
+        if 'original_dir' in locals():
+            os.chdir(original_dir)
         return False
-
+    finally:
+        # Always ensure we're back in the original directory
+        if 'original_dir' in locals():
+            os.chdir(original_dir)
 
 
 # Initialize Pygame and mixer first
@@ -1250,13 +1291,11 @@ class Scene:
         return lines
     
     def cleanup(self):
-        """Stop audio playback and cleanup resources"""
-        if hasattr(self, 'audio') and self.audio:
-            try:
-                self.audio.stop()
-            except (pygame.error, AttributeError):
-                pass  # Ignore errors during cleanup
-        self.audio = None
+        try:
+            pygame.mixer.stop()  # Stop sounds instead of quitting mixer
+            # Don't quit pygame here, as it's needed by the main game
+        except:
+            pass
 
     def __del__(self):
         """Ensure audio is stopped when the scene is destroyed"""
@@ -2365,13 +2404,25 @@ def update_video_background(level):
 def init_game():
     """Initialize video captures and background surfaces"""
     global video_captures, background_surfaces, game_stats, pause_menu
-    update_scale_factors()  # Update scaling factors
+    
+    # Only initialize Pygame if needed
+    if not pygame.get_init():
+        pygame.init()
+    if not pygame.mixer.get_init():
+        pygame.mixer.init(44100, -16, 2, 512)
+    
+    update_scale_factors()
     video_captures = {}
     background_surfaces = {}
-    # Update this line to use EnhancedGameStats instead of GameStats
-    game_stats = EnhancedGameStats(screen)
-    pause_menu = PauseMenu(screen)
     
+    # Recreate game stats and pause menu
+    try:
+        game_stats = EnhancedGameStats(screen)
+        pause_menu = PauseMenu(screen)
+    except Exception as e:
+        print(f"Error initializing game components: {e}")
+    
+    # Load background resources
     for level, bg_data in level_backgrounds.items():
         if bg_data['type'] == 'video':
             try:
