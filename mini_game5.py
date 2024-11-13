@@ -10,7 +10,6 @@ from os.path import join, exists
 from PIL import Image
 import time
 import os
-import traceback
 
 # Start up pygame
 pygame.init()

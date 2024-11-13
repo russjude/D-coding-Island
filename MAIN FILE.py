@@ -347,102 +347,140 @@ def switch_branch(MINI_GAME):
         repo.git.checkout(MINI_GAME)
         print(f"Switched to branch '{MINI_GAME}'")
 
-# Update the main function
-def main():
+def play_credits(screen):
+    # Stop all audio
+    pygame.mixer.stop()  # Stop all sound channels
+    pygame.mixer.music.stop()  # Stop music
+    pygame.mixer.music.unload()
+    
+    video_player = VideoPlayer("Graphics/CREDITS.mp4")
+    font = pygame.font.Font(None, 50)
+    text = font.render("Press SPACE to return", True, (255, 255, 255))
+    text_rect = text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100))
+    
+    running = True
+    while running:
+        current_frame = video_player.get_frame()
+        if current_frame:
+            screen.blit(current_frame, (0, 0))
+            screen.blit(text, text_rect)
+            pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    running = False
+                elif event.key == pygame.K_ESCAPE:
+                    running = False
+
+    video_player.cleanup()
+    
+    # Reload and restart the main menu music when returning
     try:
-        pygame.init()
-        mixer.init()
+        pygame.mixer.music.load("Audio/BACKGROUND_MUSIC.mp3")
+        pygame.mixer.music.play(-1)
+    except pygame.error:
+        print("Warning: Could not reload menu music")
 
-        if pygame.mixer.get_num_channels() < 2:
-            pygame.mixer.set_num_channels(2)
+def main():
+    pygame.init()
+    mixer.init()
 
-        splash = SplashScreen("Graphics/SPLASH VIDEO.mp4")
-        try:
-            mixer.music.load("Audio/Shining Sound Effect.mp3")
-            mixer.music.play(1)
-        except pygame.error:
-            print("Warning: Could not load splash screen music")
+    if pygame.mixer.get_num_channels() < 2:
+        pygame.mixer.set_num_channels(2)
 
-        if not splash.run():
-            pygame.quit()
-            return
+    # Load sound effect once at startup
+    try:
+        sound_effect = pygame.mixer.Sound("Audio/SOUND_EFFECT.MP3")
+        sound_effect_channel = pygame.mixer.Channel(1)
+    except pygame.error:
+        print("Warning: Could not load sound effect")
+        sound_effect = None
+        sound_effect_channel = None
 
-        mixer.music.stop()
+    splash = SplashScreen("Graphics/SPLASH VIDEO.mp4")
+    try:
+        mixer.music.load("Audio/Shining Sound Effect.mp3")
+        mixer.music.play(1)
+    except pygame.error:
+        print("Warning: Could not load splash screen music")
 
-        try:
-            mixer.music.load("Audio/BACKGROUND_MUSIC.mp3")
-        except pygame.error:
-            print("Warning: Could not load menu background music")
-
-        menu = MainMenu()
-        
-        while True:
-            action = menu.run()
-            if action == "quit":
-                break
-            elif action == "credits":
-                print("Switching to credits branch...")
-                if switch_branch("credits"):
-                    try:
-                        # Stop all audio and quit pygame before launching new script
-                        pygame.mixer.music.stop()
-                        pygame.mixer.quit()
-                        pygame.quit()
-                        
-                        # Suppress IMK messages when running subprocess
-                        env = os.environ.copy()
-                        env['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
-                        subprocess.run(["python", "CREDITS.py"], 
-                                     check=True, 
-                                     env=env, 
-                                     stderr=subprocess.DEVNULL if sys.platform == 'darwin' else None)
-                        
-                        # Reinitialize pygame after returning
-                        pygame.init()
-                        mixer.init()
-                    except FileNotFoundError:
-                        print("Could not find the CREDITS.py file")
-                    except subprocess.CalledProcessError as e:
-                        print(f"Error running CREDITS.py: {e}")
-                else:
-                    print("Failed to switch to credits branch")
-            elif action == "play":
-                print("Switching to minigame branch...")
-                if switch_branch("minigame"):
-                    try:
-                        # Stop all audio and quit pygame before launching new script
-                        pygame.mixer.music.stop()
-                        pygame.mixer.quit()
-                        pygame.quit()
-                        
-                        # Suppress IMK messages when running subprocess
-                        env = os.environ.copy()
-                        env['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
-                        subprocess.run(["python", "no_minigame.py"], 
-                                     check=True, 
-                                     env=env,
-                                     stderr=subprocess.DEVNULL if sys.platform == 'darwin' else None)
-                        return  # Exit after launching game
-                    except FileNotFoundError:
-                        print("Could not find the MINI_GAME.py file")
-                    except subprocess.CalledProcessError as e:
-                        print(f"Error running no_minigame.py: {e}")
-                else:
-                    print("Failed to switch to minigame branch")
-        
-    finally:
+    if not splash.run():
         pygame.quit()
+        return
+
+    # Stop all audio before starting main menu
+    pygame.mixer.stop()
+    pygame.mixer.music.stop()
+    pygame.mixer.music.unload()
+
+    try:
+        mixer.music.load("Audio/BACKGROUND_MUSIC.mp3")
+        pygame.mixer.music.play(-1)  # Play the music on loop
+    except pygame.error:
+        print("Warning: Could not load menu background music")
+
+    menu = MainMenu()
+    
+    while True:
+        action = menu.run()
+        if action == "quit":
+            break
+        elif action == "credits":
+            # Stop all audio
+            pygame.mixer.stop()  # Stop all sound channels including effects
+            if sound_effect_channel:
+                sound_effect_channel.stop()
+            play_credits(screen)
+        elif action == "play":
+            try:
+                # Stop all audio
+                pygame.mixer.stop()  # Stop all sound channels including effects
+                if sound_effect_channel:
+                    sound_effect_channel.stop()
+                pygame.mixer.music.stop()
+                pygame.mixer.music.unload()
+                
+                # Import and run the game
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("no_minigame", "no_minigame.py")
+                minigame_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(minigame_module)
+                
+                # Run the game's main function
+                minigame_module.main()
+                
+                # After game ends, reinitialize pygame and mixer
+                pygame.init()
+                mixer.init()
+                
+                # Reload and restart the main menu music
+                try:
+                    mixer.music.load("Audio/BACKGROUND_MUSIC.mp3")
+                    pygame.mixer.music.play(-1)
+                except pygame.error:
+                    print("Warning: Could not reload menu music")
+                    
+            except ImportError:
+                print("Could not find the no_minigame.py file")
+            except Exception as e:
+                print(f"Error running game: {e}")
+                pygame.init()
+                mixer.init()
+                # Try to restore the menu music if there's an error
+                try:
+                    mixer.music.load("Audio/BACKGROUND_MUSIC.mp3")
+                    pygame.mixer.music.play(-1)
+                except pygame.error:
+                    print("Warning: Could not reload menu music after error")
+    
+    # Clean up before quitting
+    pygame.mixer.stop()
+    pygame.mixer.music.stop()
+    pygame.mixer.quit()
+    pygame.quit()
 
 if __name__ == "__main__":
-    # Suppress stdout/stderr for the entire script on macOS
-    if sys.platform == 'darwin':
-        with open(os.devnull, 'w') as fnull:
-            stderr_backup = sys.stderr
-            stdout_backup = sys.stdout
-            sys.stderr = fnull
-            sys.stdout = fnull
-            main()
-            sys.stderr = stderr_backup
-            sys.stdout = stdout_backup
-    else:
-        main()
+    main()

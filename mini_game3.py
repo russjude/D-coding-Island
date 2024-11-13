@@ -24,7 +24,6 @@ RED = (255, 0, 0)
 TECH_WORDS = [
     "CODING", "PYTHON", "ROUTER", "SERVER", "BINARY",
     "GITHUB", "LINUX", "DOCKER", "CLOUD", "GAMING",
-    "RUSSS"  # Master word
 ]
 
 class WordGame:
@@ -42,6 +41,8 @@ class WordGame:
         self.game_over = False
         self.won = False
         self.scrambled_letters = []
+        self.should_restart = False
+        self.game_over_timer = 0
 
     def add_letter(self):
         available_positions = []
@@ -73,15 +74,18 @@ class WordGame:
             self.won = True
             self.game_over = True
             self.message = "Congratulations! You won!"
+            self.game_over_timer = pygame.time.get_ticks()
             return True
         self.attempts_left -= 1
         if self.attempts_left == 0:
             self.game_over = True
             self.message = f"Game Over! The word was {self.target_word}"
+            self.game_over_timer = pygame.time.get_ticks()
+            self.should_restart = True
         else:
             self.message = f"Wrong guess! {self.attempts_left} attempts left"
         return False
-
+    
 class GameState:
     def __init__(self):
         self.reset_game()
@@ -322,9 +326,7 @@ class Game:
                 return False
 
             if event.type == pygame.KEYDOWN:
-                if self.game_state.word_game.game_over and event.key == pygame.K_SPACE:
-                    return self.game_state.word_game.won
-                elif self.game_state.word_game.guessing_phase:
+                if self.game_state.word_game.guessing_phase and not self.game_state.word_game.game_over:
                     if event.key == pygame.K_RETURN and self.game_state.word_game.current_guess:
                         self.game_state.word_game.check_guess(self.game_state.word_game.current_guess)
                         self.game_state.word_game.current_guess = ""
@@ -387,6 +389,12 @@ class Game:
         while running:
             current_time = pygame.time.get_ticks()
             
+            # Check for restart condition
+            if self.game_state.word_game.should_restart and \
+               current_time - self.game_state.word_game.game_over_timer > 2000:  # 2 second delay
+                self.game_state = GameState()  # Reset entire game state
+                continue
+            
             # Handle events
             result = self.handle_events()
             if result is not None:  # None means continue game, True/False means exit
@@ -398,6 +406,11 @@ class Game:
             
             if self.game_state.word_game.game_over:
                 self.draw_game_over()
+                # Check for win/lose transitions
+                if current_time - self.game_state.word_game.game_over_timer > 2000:
+                    if self.game_state.word_game.won:
+                        self.cleanup()
+                        return True
             elif self.game_state.word_game.guessing_phase:
                 self.draw_guessing_phase()
             else:
@@ -412,8 +425,12 @@ class Game:
 
     def draw_game_over(self):
         """Draw game over screen"""
-        self.screen.fill(BLACK)
+        overlay = pygame.Surface((WIDTH, HEIGHT))
+        overlay.fill(BLACK)
+        overlay.set_alpha(192)  # More transparent overlay
+        self.screen.blit(overlay, (0, 0))
         
+        # Draw the game over text
         end_text = "GAME OVER"
         final_result = "YOU WIN!" if self.game_state.word_game.won else "YOU LOSE!"
         
@@ -429,11 +446,6 @@ class Game:
         word_surface = self.small_font.render(word_text, True, WHITE)
         word_rect = word_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 100))
         self.screen.blit(word_surface, word_rect)
-
-        restart_text = "PRESS SPACE TO RESTART"
-        restart_surface = self.small_font.render(restart_text, True, WHITE)
-        restart_rect = restart_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 150))
-        self.screen.blit(restart_surface, restart_rect)
 
     def draw_game_state(self, current_time):
         """Draw main game state"""

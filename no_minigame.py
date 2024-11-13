@@ -37,89 +37,58 @@ def load_minigame(level):
         
         result = False
         
-        if level in range(1, 6):  # levels 1-5
-            try:
-                # Run the minigame
-                from importlib import import_module
-                minigame = import_module(f'mini_game{level}')
-                result = minigame.main()
-                
-                # Proper cleanup after minigame
-                if pygame.mixer.get_init():
-                    pygame.mixer.stop()
-                
-                # Restore original display mode
-                try:
-                    if was_fullscreen:
-                        screen = pygame.display.set_mode(original_resolution, pygame.FULLSCREEN)
-                    else:
-                        screen = pygame.display.set_mode(original_resolution)
-                    
-                    pygame.display.set_caption('Decoding Island')
-                    
-                    # Clear the screen
-                    screen.fill((0, 0, 0))
-                    pygame.display.flip()
-                except pygame.error as e:
-                    print(f"Error restoring display: {e}")
-                    # Try one more time with default resolution
-                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-                
-                # Return to original directory
-                os.chdir(original_dir)
-                
-                # Reinitialize game components
-                init_game()
-                
-            except ImportError as e:
-                print(f"Could not load minigame module for level {level}: {e}")
-                os.chdir(original_dir)
+        try:
+            # Import and run the appropriate minigame based on level
+            if level == 1:
+                from mini_game1 import main
+                result = main()  # Palak's puzzle game
+            elif level == 2:
+                from mini_game2 import main
+                result = main()  # Russ's word game
+            elif level == 3:
+                from mini_game3 import main
+                result = main()  # Geoff's rock paper scissors
+            elif level == 4:
+                from mini_game4 import main
+                result = main()  # Jessica's word collection
+            elif level == 5:
+                from mini_game5 import main
+                result = main()  # Jacobo's programming quiz
+            else:
+                print(f"No minigame defined for level {level}")
                 return False
-            except Exception as e:
-                print(f"Error running minigame {level}: {e}")
-                os.chdir(original_dir)
-                return False
-        
-        # Show message if minigame wasn't completed
-        if not result and pygame.display.get_surface() and original_display:
-            screen = pygame.display.get_surface()
-            screen.blit(original_display, (0, 0))
             
-            # Create semi-transparent overlay
-            overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 180))
-            screen.blit(overlay, (0, 0))
-            
-            # Show message
+            # Restore original display mode
             try:
-                font = pygame.font.SysFont('Bauhaus 93', 32)
-                text1 = font.render("You must complete the minigame to proceed!", True, (255, 255, 255))
-                text2 = font.render("Press any key to try again...", True, (255, 255, 255))
+                if was_fullscreen:
+                    screen = pygame.display.set_mode(original_resolution, pygame.FULLSCREEN)
+                else:
+                    screen = pygame.display.set_mode(original_resolution)
                 
-                text1_rect = text1.get_rect(center=(screen.get_width()//2, screen.get_height()//2 - 20))
-                text2_rect = text2.get_rect(center=(screen.get_width()//2, screen.get_height()//2 + 20))
+                pygame.display.set_caption('Decoding Island')
                 
-                screen.blit(text1, text1_rect)
-                screen.blit(text2, text2_rect)
+                # Clear the screen
+                screen.fill((0, 0, 0))
                 pygame.display.flip()
-                
-                # Wait for keypress
-                waiting = True
-                while waiting:
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            return False
-                        if event.type == pygame.KEYDOWN:
-                            waiting = False
-                    pygame.time.wait(100)
-                
-                # Try the minigame again
-                return load_minigame(level)
             except pygame.error as e:
-                print(f"Error showing retry message: {e}")
-                return False
-        
-        return result
+                print(f"Error restoring display: {e}")
+                screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+            
+            # Return to original directory and reinitialize game components
+            os.chdir(original_dir)
+            init_game()
+            
+            return result
+            
+        except ImportError as e:
+            print(f"Could not load minigame module for level {level}: {e}")
+            os.chdir(original_dir)
+            return False
+        except Exception as e:
+            print(f"Error running minigame {level}: {e}")
+            traceback.print_exc()
+            os.chdir(original_dir)
+            return False
         
     except Exception as e:
         print(f"Error in load_minigame: {e}")
@@ -130,7 +99,6 @@ def load_minigame(level):
         # Always ensure we're back in the original directory
         if 'original_dir' in locals():
             os.chdir(original_dir)
-
 
 # Initialize Pygame and mixer first
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -352,6 +320,7 @@ LEVEL_PLATFORM_DATA = {
             (7, 25, 14, 5),
 
             # Ground level
+            (28, 30, 1.5, 1),
             (0.5, 28.4, 6.6, 8.0),
             (21, 28.4, 6.7, 8.0),
             (43.2, 31.7, 27, 5.0),
@@ -550,6 +519,7 @@ LEVEL_PLATFORM_DATA = {
     ]
 }
 
+
 # 1. Fix the level_backgrounds initialization
 level_backgrounds = {
     0: {'type': 'video', 'path': 'Level Data/Level Image/Level0_Background.mp4'},
@@ -557,7 +527,7 @@ level_backgrounds = {
     2: {'type': 'video', 'path': 'Level Data/Level Image/Level2_Background.mp4'},
     3: {'type': 'video', 'path': 'Level Data/Level Image/Level3_Background.mp4'},
     4: {'type': 'video', 'path': 'Level Data/Level Image/Level4_Background.mp4'},
-    5: {'type': 'image', 'path': 'Level Data/Level Image/Level5.png'}
+    5: {'type': 'video', 'path': 'Level Data/Level Image/Level5_Background.mp4'}
 }
 
 # Dictionary mapping dialogue scenes to background images
@@ -677,28 +647,33 @@ LEVEL_DEADLY_DATA = {
 
 # Update LEVEL_BLUE_DATA for special tiles
 LEVEL_BLUE_DATA = {
-    0: [],  # No blue tiles in tutorial
-    1: [],  # No blue tiles in level 1
+    0: [
+
+
+    ],
+    1: [
+
+    ],
     2: [
         (23.2, 3.6, 3, 1.1),
-        (26.4, 10.2, 4.8, 1.4)
+        (26.4, 10.2, 4.8, 1.4),
     ],
     3: [
         (19.9, 1.9, 3, 1.4),
         (47.7, 13.5, 3.2, 1.3),
         (19.5, 35, 3.7, 6),
-        (44.2, 35, 2.2, 6)
+        (44.2, 35, 2.2, 6),
     ],
     4: [
         (10, 23.4, 11.3, 1.3),
-        (18.5, 23.4, 1, 7.6)
+        (18.5, 23.4, 1, 7.6),
     ],
     5: [
         (26.2, 13.5, 1.7, 1.3),
         (26.4, 20, 4.8, 1.3),
         (19.6, 26.7, 5.3, 1.5),
         (41, 26.7, 5, 1.5),
-        (31.1, 26.7, 3.3, 1.5)
+        (31.1, 26.7, 3.3, 1.5),
     ]
 }
 
@@ -881,126 +856,126 @@ class SceneManager:
             {
                 'image': 'DCI_Scenes/Scene2.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene2.mp3',
-                'text': f'Dear {self.player_name}, you stumbled upon the ancient artifact, half-buried in a cave. It was a stone box, covered in intricate, interlocking symbols that seemed to shift if you stared too long.',
+                'text': f'Dear Claude, you stumbled upon the ancient artifact, half-buried in a cave. It was a stone box, covered in intricate, interlocking symbols that seemed to shift if you stared too long.',
                 'next': 'scene'
             },
             # Scene 3
             {
                 'image': 'DCI_Scenes/Scene3.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene3.mp3',
-                'text': f'{self.player_name} worked carefully, pressing and turning parts of the stone, the symbols clicked into alignment. Inside was a letter that wrote: "Whoever unlocks these secrets is bound to us. Your presence is now required. The island awaits, {self.player_name}."',
+                'text': f'Claude worked carefully, pressing and turning parts of the stone, the symbols clicked into alignment. Inside was a letter that wrote: "Whoever unlocks these secrets is bound to us. Your presence is now required. The island awaits, Claude."',
                 'next': 'scene'
             },
             # Scene 4
             {
                 'image': 'DCI_Scenes/Scene4.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene4.mp3',
-                'text': f'{self.player_name} feels something watching. A mysterious voice echoes through the darkness.',
+                'text': f'Claude feels something watching. A mysterious voice echoes through the darkness.',
                 'next': 'scene'
             },
             # Scene 5
             {
                 'image': 'DCI_Scenes/Scene5.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene5.mp3',
-                'text': f'{self.player_name} follows the voice as it gets closer and closer.',
+                'text': f'Claude follows the voice as it gets closer and closer.',
                 'next': 'scene'
             },
             # Scene 6
             {
                 'image': 'DCI_Scenes/Scene6.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene6.mp3',
-                'text': f'Before {self.player_name} realizes, the path leads to a forest with an eerie feel.',
+                'text': f'Before Claude realizes, the path leads to a forest with an eerie feel.',
                 'next': 'scene'
             },
             # Scene 7 - Lead to Tutorial Level
             {
                 'image': 'DCI_Scenes/Scene7.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene7.mp3',
-                'text': f'The ghostly voice of Eralt lingers in the air.\n\nEralt the Ghost: "Welcome, {self.player_name}. Beware, young master. The island knows your fears, your weaknesses. Solve the code, and move closer to your destiny. Fail, and join the lost souls who could not decode the island\'s secrets."',
+                'text': f'The ghostly voice of Eralt lingers in the air.\n\nEralt the Ghost: "Welcome, Claude. Beware, young master. The island knows your fears, your weaknesses. Solve the code, and move closer to your destiny. Fail, and join the lost souls who could not decode the island\'s secrets."',
                 'next': 'level_0'
             },
             # Scene 8 - After Tutorial, before Level 1
             {
                 'image': 'DCI_Scenes/Scene8.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene8.mp3',
-                'text': f'A figure emerges from the shadows.\n\nPalak the Assassin: "I am Palak, the Assassin, Guardian of the First Level. Ah, so you are {self.player_name}. To pass my challenge, you must prove you can see through deception and lies. Codes are more than words—theyre veils of truth and deceit. Decipher mine, or face the consequences."',
+                'text': f'A figure emerges from the shadows.\n\nPalak the Assassin: "I am Palak, the Assassin, Guardian of the First Level. Ah, so you are Claude. To pass my challenge, you must prove you can see through deception and lies. Codes are more than words—theyre veils of truth and deceit. Decipher mine, or face the consequences."',
                 'next': 'level_1'
             },
             # Scene 9 - After Level 1 completion
             {
                 'image': 'DCI_Scenes/Scene9.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene9.mp3',
-                'text': f'{self.player_name} completes the code with determination.\n\nPalak the Assassin: "Impressive, {self.player_name}. You may pass… for now. Your journey has only begun."',
+                'text': f'Claude completes the code with determination.\n\nPalak the Assassin: "Impressive, Claude. You may pass… for now. Your journey has only begun."',
                 'next': 'scene'
             },
             # Scene 10 - Lead to Level 2
             {
                 'image': 'DCI_Scenes/Scene10.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene10.mp3',
-                'text': f'Russ the Wizard: "Ah, so the prophecy speaks true. {self.player_name}, the new champion, has arrived." He gestures to a puzzle box floating in mid-air, surrounded by a shimmering aura.',
+                'text': f'Russ the Wizard: "Ah, so the prophecy speaks true. Claude, the new champion, has arrived." He gestures to a puzzle box floating in mid-air, surrounded by a shimmering aura.',
                 'next': 'level_2'
             },
             # Scene 11 - After Level 2 completion
             {
                 'image': 'DCI_Scenes/Scene11.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene11.mp3',
-                'text': f'The Wizard smiles approvingly, nodding.\n\nRuss the Wizard: "Well done, {self.player_name}. You\'ve earned the right to advance. Your wisdom grows stronger with each challenge."',
+                'text': f'The Wizard smiles approvingly, nodding.\n\nRuss the Wizard: "Well done, Claude. You\'ve earned the right to advance. Your wisdom grows stronger with each challenge."',
                 'next': 'scene'
             },
             # Scene 12 - Lead to Level 3
             {
                 'image': 'DCI_Scenes/Scene12.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene12.mp3',
-                'text': f'Geoff the Autocrat: "So, {self.player_name}, you\'ve passed the others. But codes are not just puzzles; they\'re tools of control, of power. I rule through secrets, and now you shall learn their true weight."',
+                'text': f'Geoff the Autocrat: "So Claude, you\'ve passed the others. But codes are not just puzzles; they\'re tools of control, of power. I rule through secrets, and now you shall learn their true weight."',
                 'next': 'level_3'
             },
             # Scene 13 - After Level 3 completion
             {
                 'image': 'DCI_Scenes/Scene13.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene13.mp3',
-                'text': f'Autocrat inclines his head, a dark smile on his lips.\n\nGeoff the Autocrat: "Impressive, {self.player_name}. Remember, only those who understand power can control it. Your mastery grows. Proceed."',
+                'text': f'Autocrat inclines his head, a dark smile on his lips.\n\nGeoff the Autocrat: "Impressive, Claude. Remember, only those who understand power can control it. Your mastery grows. Proceed."',
                 'next': 'scene'
             },
             # Scene 14 - Lead to Level 4
             {
                 'image': 'DCI_Scenes/Scene14.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene14.mp3',
-                'text': f'Jessica the Wraith materializes from the mist.\n\nJessica: "Ah, {self.player_name}, you are brave, but bravery means nothing in the face of fear. This trial is not of logic, but of your darkest nightmares. Let us see what lies in the depths of your soul."',
+                'text': f'Jessica the Wraith materializes from the mist.\n\nJessica: "Ah, Claude, you are brave, but bravery means nothing in the face of fear. This trial is not of logic, but of your darkest nightmares. Let us see what lies in the depths of your soul."',
                 'next': 'level_4'
             },
             # Scene 15 - After Level 4 completion
             {
                 'image': 'DCI_Scenes/Scene15.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene15.mp3',
-                'text': f'Jessica the Wraith: "You surprise me, {self.player_name}. Few have faced their fears with such resolve. You may go on, though many are lost here… Remember this strength in the trials ahead."',
+                'text': f'Jessica the Wraith: "You surprise me, Claude. Few have faced their fears with such resolve. You may go on, though many are lost here… Remember this strength in the trials ahead."',
                 'next': 'scene'
             },
             # Scene 16 - Lead to Final Level
             {
                 'image': 'DCI_Scenes/Scene16.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene16.mp3',
-                'text': f'The Undead King\'s voice resonates through the chamber.\n\nJacobo: "At last, {self.player_name}, you stand before the final trial. I am Jacobo, the Undead King, master of the lost and forgotten. To claim victory, you must decipher the oldest code of all, the language of life and death itself."',
+                'text': f'The Undead King\'s voice resonates through the chamber.\n\nJacobo: "At last, Claude, you stand before the final trial. I am Jacobo, the Undead King, master of the lost and forgotten. To claim victory, you must decipher the oldest code of all, the language of life and death itself."',
                 'next': 'level_5'
             },
             # Scene 17 - After Final Level completion
             {
                 'image': 'DCI_Scenes/Scene17.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene17.mp3',
-                'text': f'Jacobo the Undead King: "Remarkable, {self.player_name}. You have proven yourself beyond all expectations. But know that this accomplishment is not a prize, but a burden. The codes you now possess contain secrets that even the spirits dare not speak. Guard them well, for they will change everything."',
+                'text': f'Jacobo the Undead King: "Remarkable, Claude. You have proven yourself beyond all expectations. But know that this accomplishment is not a prize, but a burden. The codes you now possess contain secrets that even the spirits dare not speak. Guard them well, for they will change everything."',
                 'next': 'scene'
             },
             # Scene 18 - Exit scene
             {
                 'image': 'DCI_Scenes/Scene18.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene18.mp3',
-                'text': f'{self.player_name} emerges from the cave, forever changed by the journey.',
+                'text': f'Claude emerges from the cave, forever changed by the journey.',
                 'next': 'scene'
             },
             # Scene 19 - Final scene and credits
             {
                 'image': 'DCI_Scenes/Scene19.png',
                 'audio': 'DCI_Scenes/Sound_Effects/Scene19.mp3',
-                'text': f'Congratulations, {self.player_name}. You are free, but the knowledge you carry will be your eternal companion.',
+                'text': f'Congratulations, Claude. You are free, but the knowledge you carry will be your eternal companion.',
                 'next': 'game_complete',
                 'show_credits': True
             }
@@ -1542,6 +1517,8 @@ class PauseMenu:
 
 def handle_level_completion(current_level, door, player):
     """Handle level completion and transitions"""
+    global keys_collected, game_over, movement_enabled
+
     if not door.entered and keys_collected >= LEVEL_REQUIREMENTS[current_level]:
         # Start door zoom if we have enough keys
         if not door.is_open:
@@ -1549,39 +1526,156 @@ def handle_level_completion(current_level, door, player):
         elif pygame.sprite.collide_rect(player, door):
             door.entered = True
             camera.stop_sounds()
-            return True
-    return False
+            
+            # Transition mapping
+            intro_scenes = {
+                0: (7, "Palak's intro"),      # Tutorial → Scene 8 
+                1: (9, "Russ's intro"),       # Level 1 → Scene 10
+                2: (11, "Geoff's intro"),     # Level 2 → Scene 12
+                3: (13, "Jessica's intro"),   # Level 3 → Scene 14
+                4: (15, "Jacobo's intro"),    # Level 4 → Scene 16
+                5: (17, "Ending scene")       # Level 5 → End
+            }
+            
+            if current_level in intro_scenes:
+                scene_index, _ = intro_scenes[current_level]
+                # Move to character introduction scene
+                scene_manager.scene_index = scene_index
+                scene_manager.current_scene = Scene(
+                    screen,
+                    scene_manager.scenes[scene_index],
+                    scene_manager.player_name
+                )
+            
+    return 'playing'
+
+# Replace handle_minigame_completion function:
+def handle_minigame_completion(minigame_level):
+    """Handle the transition after minigame completion"""
+    global current_level, movement_enabled, keys_collected, game_start_time
+    global keys_group, door, moving_enemies, player, ghost
+    
+    # Success scene mapping after minigame completion
+    success_scenes = {
+        1: (8, "Level 1 start"),    # After Palak's minigame
+        2: (10, "Level 2 start"),   # After Russ's minigame
+        3: (12, "Level 3 start"),   # After Geoff's minigame
+        4: (14, "Level 4 start"),   # After Jessica's minigame
+        5: (16, "Final level start") # After Jacobo's minigame
+    }
+    
+    if minigame_level in success_scenes:
+        # Reset state for new level
+        keys_collected = 0
+        game_start_time = None
+        movement_enabled = False
+        
+        current_level = minigame_level
+
+        # Initialize the new level
+        result = init_level(minigame_level)
+        if result is not None:
+            #Unpack level components
+            keys_group, door, world, moving_enemies, player, ghost = result
+            camera.start_transition()
+            
+            # Move to success scene
+            scene_index, _ = success_scenes[minigame_level]
+            scene_manager.scene_index = scene_index
+            scene_manager.current_scene = Scene(
+                screen,
+                scene_manager.scenes[scene_index],
+                scene_manager.player_name
+            )
+            return "playing"
+    
+    return "error"
 
 def transition_to_next_level():
-    """Handle transition to the next level"""
-    global current_level, movement_enabled
-    
+    global current_level, movement_enabled, scene_manager, game_start_time, keys_collected, keys_group, door, world, moving_enemies, player, ghost
+
     # Store completion time
     if game_start_time:
         elapsed_time = int(time.time() - game_start_time)
         level_times.append(elapsed_time)
-    
+
+    # Reset state before transition
+    game_start_time = None
+    keys_collected = 0
+    movement_enabled = False
+
     # Determine next level
-    next_level = current_level + 1 if current_level < 5 else None
-    
-    if next_level is not None:
-        # Initialize next level
-        result = init_level(next_level)
-        if result is not None:
-            keys_group, door, world, moving_enemies, player, ghost = result
-            camera.start_transition()
-            movement_enabled = False
-            return "playing"
-        else:
-            print(f"Failed to initialize level {next_level}")
-            return "error"
+    next_level = current_level + 1
+    if next_level > 5:
+        # Reached the final level, transition to ending scenes
+        scene_manager.scene_index = 17
+        scene_manager.current_scene = Scene(
+            screen,
+            scene_manager.scenes[scene_manager.scene_index],
+            scene_manager.player_name
+        )
+        return "ending_scenes"
+
+    # Initialize the next level
+    level_objects = init_level(next_level)
+    if all(obj is not None for obj in level_objects):
+        keys_group, door, world, moving_enemies, player, ghost = level_objects
+        camera.start_transition()
+        current_level = next_level
+        return "playing"
     else:
-        # Game completed
-        return "game_complete"
+        print(f"Failed to initialize level {next_level}")
+        return "error"
+        
+    transition = level_transitions[current_level]
+    
+    if transition['next_level'] is None:
+        # Transition to ending scenes
+        scene_manager.scene_index = transition['scene_before_minigame']
+        scene_manager.current_scene = Scene(
+            screen,
+            scene_manager.scenes[scene_manager.scene_index],
+            scene_manager.player_name
+        )
+        return "ending_scenes"
+    
+    # Handle minigame if needed
+    if transition['needs_minigame']:
+        # First show the scene before minigame
+        scene_manager.scene_index = transition['scene_before_minigame']
+        scene_manager.current_scene = Scene(
+            screen,
+            scene_manager.scenes[scene_manager.scene_index],
+            scene_manager.player_name
+        )
+        
+        # Let the scene play out before starting minigame
+        return "scene"
+    
+    # Initialize next level if no minigame needed
+    current_level = transition['next_level']
+    result = init_level(current_level)
+    if result is not None:
+        keys_group, door, world, moving_enemies, player, ghost = result
+        camera.start_transition()
+        
+        # Set up next scene
+        scene_manager.scene_index = transition['scene_after_minigame']
+        scene_manager.current_scene = Scene(
+            screen,
+            scene_manager.scenes[scene_manager.scene_index],
+            scene_manager.player_name
+        )
+        return "scene"
+    else:
+        print(f"Failed to initialize level {current_level}")
+        return "error"
 
 def handle_pause():
     """Handle pause menu state and actions"""
     global paused, running, current_state, keys_collected, game_over, total_pause_time, pause_start_time
+    global current_level, camera, player, door, world, moving_enemies, ghost, keys_group, movement_enabled
+    global scene_manager, game_start_time
     
     pause_menu.draw()
     
@@ -1593,7 +1687,6 @@ def handle_pause():
         if current_state in ["intro_scenes", "level_transition"]:
             scene_manager.handle_input(event)
         
-        # Handle pause button click
         if current_state == "playing" and not paused and pause_button.handle_event(event):
             paused = True
             pause_start_time = datetime.now()
@@ -1611,29 +1704,11 @@ def handle_pause():
                 paused = False
                 total_pause_time += datetime.now() - pause_start_time
             elif action == 'RESTART LEVEL':
+                restart_current_level()
                 paused = False
-                game_over = 0
-                keys_collected = 0
-                if hasattr(player, 'stop_sounds'):
-                    player.stop_sounds()
-                if hasattr(camera, 'stop_sounds'):
-                    camera.stop_sounds()
-                camera.cleanup()
-                camera.reset_zoom()
-                keys_group, door, world, moving_enemies, player, ghost = init_level(current_level)
-                camera.start_transition()
+                return True
             elif action == 'QUIT TO MENU':
-                # Cleanup current game resources
-                if hasattr(player, 'stop_sounds'):
-                    player.stop_sounds()
-                if hasattr(camera, 'stop_sounds'):
-                    camera.stop_sounds()
-                cleanup_backgrounds()
-                pygame.mixer.stop()  # Stop all sound channels
-                pygame.mixer.music.stop()  # Stop background music
-                pygame.quit()
-
-                # Import and run main menu
+                cleanup_game()
                 try:
                     import MAINMENU
                     MAINMENU.main()
@@ -1644,6 +1719,95 @@ def handle_pause():
     
     pygame.display.update()
     return True
+
+def restart_current_level():
+    """Completely restart the current level"""
+    global keys_collected, game_over, movement_enabled, game_start_time
+    global keys_group, door, world, moving_enemies, player, ghost, current_state
+    
+    try:
+        # Reset all game state variables
+        keys_collected = 0
+        game_over = 0
+        movement_enabled = False
+        game_start_time = None
+        
+        # Stop all sounds
+        pygame.mixer.stop()
+        if hasattr(player, 'stop_sounds'):
+            player.stop_sounds()
+        if hasattr(camera, 'stop_sounds'):
+            camera.stop_sounds()
+        
+        # Reset camera
+        camera.cleanup()
+        camera.reset_zoom()
+        
+        # Clear existing sprite groups
+        if keys_group:
+            keys_group.empty()
+        if moving_enemies:
+            moving_enemies.empty()
+            
+        # Initialize fresh level objects
+        result = init_level(current_level)
+        if result is not None:
+            keys_group, door, world, moving_enemies, player, ghost = result
+            
+            # Reset door state
+            if hasattr(door, 'entered'):
+                door.entered = False
+            if hasattr(door, 'is_open'):
+                door.is_open = False
+                
+            # Reset player position and state
+            if hasattr(player, 'reset'):
+                player.reset()
+            
+            # Start transition effect
+            camera.start_transition()
+            
+            # Enable movement after brief delay
+            pygame.time.set_timer(pygame.USEREVENT, 1000)  # 1-second delay
+            
+            # Set game state
+            current_state = "playing"
+            
+            print("Level restarted successfully")
+        else:
+            print(f"Failed to restart level {current_level}")
+            
+    except Exception as e:
+        print(f"Error during level restart: {e}")
+        traceback.print_exc()  # This will print the full error traceback
+
+def init_level(level_number):
+    """Initialize a level with the given number"""
+    try:
+        # Initialize sprite groups
+        keys_group = pygame.sprite.Group()
+        moving_enemies = pygame.sprite.Group()
+        
+        # Create world and load level data
+        world = World(level_number)
+        
+        # Create player at starting position
+        player = Player()
+        
+        # Create door
+        door = Door(level_number)
+        
+        # Create ghost for levels after tutorial
+        ghost = Ghost() if level_number > 0 else None
+        
+        # Load level-specific elements (implemented in World class)
+        world.load_level(level_number)
+        
+        return keys_group, door, world, moving_enemies, player, ghost
+    except Exception as e:
+        print(f"Error initializing level {level_number}: {e}")
+        traceback.print_exc()  # This will print the full error traceback
+        return None
 
 def cleanup_game():
     """Cleanup all game resources"""
@@ -2303,81 +2467,110 @@ def reset_level():
 
 
 def generate_key_positions(level):
-    """Improved key position generation with better boundary checking"""
+    """Generate key positions ensuring they're all within screen bounds"""
     positions = []
     required_keys = LEVEL_REQUIREMENTS[level]
     platforms = LEVEL_PLATFORM_DATA[level]
     
-    # Screen boundaries with margin
-    MARGIN = TILE_SIZE * 2
+    # Screen boundaries with generous margins
+    MARGIN_X = TILE_SIZE * 2
+    MARGIN_Y = TILE_SIZE * 2
     screen_bounds = {
-        'left': MARGIN,
-        'right': SCREEN_WIDTH - MARGIN,
-        'top': MARGIN,
-        'bottom': SCREEN_HEIGHT - MARGIN
+        'left': MARGIN_X,
+        'right': SCREEN_WIDTH - MARGIN_X,
+        'top': MARGIN_Y,
+        'bottom': SCREEN_HEIGHT - MARGIN_Y
     }
     
     def is_within_bounds(x, y):
-        """Check if position is within screen bounds"""
+        """Check if position is within screen bounds with margins"""
         return (screen_bounds['left'] <= x <= screen_bounds['right'] and
                 screen_bounds['top'] <= y <= screen_bounds['bottom'])
     
-    # Get viable platform positions
+    # Get viable platform positions (excluding ground platforms)
     viable_platforms = []
     for plat in platforms:
+        # Convert platform coordinates to screen coordinates
         x = plat[0] * TILE_SIZE
         y = plat[1] * TILE_SIZE
         width = plat[2] * TILE_SIZE
         
-        # Skip ground level platforms
-        if y < SCREEN_HEIGHT * 0.8:
-            # Adjust platform boundaries to ensure keys stay within screen
-            plat_left = max(x + MARGIN, screen_bounds['left'])
-            plat_right = min(x + width - MARGIN, screen_bounds['right'])
+        # Skip very low platforms (ground level) and ensure platform is within bounds
+        if y < SCREEN_HEIGHT * 0.8 and x < SCREEN_WIDTH and x + width > 0:
+            # Adjust platform boundaries to fit within screen
+            platform_left = max(x, screen_bounds['left'])
+            platform_right = min(x + width, screen_bounds['right'])
             
-            if plat_right > plat_left:  # Only add if there's valid space
-                viable_platforms.append((plat_left, y, plat_right - plat_left))
+            if platform_right > platform_left:  # Only add if there's valid space
+                viable_platforms.append({
+                    'x': platform_left,
+                    'y': y,
+                    'width': platform_right - platform_left
+                })
     
-    import random
-    random.shuffle(viable_platforms)
+    # Sort platforms by height (top to bottom) for better distribution
+    viable_platforms.sort(key=lambda p: p['y'])
     
-    # Keep trying until we have all required keys
-    attempts = 0
-    max_attempts = required_keys * 10  # Generous attempt limit
+    # Try to distribute keys evenly among different heights
+    keys_per_section = max(1, required_keys // len(viable_platforms))
+    remaining_keys = required_keys
     
-    while len(positions) < required_keys and attempts < max_attempts:
-        if not viable_platforms:
-            break
+    while remaining_keys > 0 and viable_platforms:
+        # Take a random platform from the available ones
+        platform = random.choice(viable_platforms)
+        
+        # Calculate safe spawn position on platform
+        for _ in range(3):  # Try 3 times per platform
+            # Calculate key position with margins
+            key_x = random.uniform(
+                platform['x'] + TILE_SIZE,  # Left margin
+                platform['x'] + platform['width'] - TILE_SIZE  # Right margin
+            )
+            key_y = platform['y'] - TILE_SIZE * 1.5  # Spawn above platform
             
-        plat = random.choice(viable_platforms)
+            # Double check if position is within bounds
+            if is_within_bounds(key_x, key_y):
+                # Check if position is not too close to existing keys
+                too_close = False
+                for existing_x, existing_y in positions:
+                    distance = math.sqrt((key_x - existing_x)**2 + (key_y - existing_y)**2)
+                    if distance < TILE_SIZE * 3:  # Minimum distance between keys
+                        too_close = True
+                        break
+                
+                if not too_close:
+                    positions.append((key_x, key_y))
+                    remaining_keys -= 1
+                    break
         
-        # Generate position on platform
-        key_x = random.uniform(plat[0], plat[0] + plat[2])
-        key_y = plat[1] - TILE_SIZE * 1.5  # Place above platform
+        # Remove platform after attempting to spawn on it
+        viable_platforms.remove(platform)
         
-        # Verify position is within bounds
-        if is_within_bounds(key_x, key_y):
-            positions.append((key_x, key_y))
-        
-        attempts += 1
+        # If we're running out of platforms but still need keys,
+        # add some platforms back with adjusted heights
+        if len(viable_platforms) < remaining_keys:
+            viable_platforms.extend([p for p in viable_platforms if p['y'] < SCREEN_HEIGHT * 0.7])
     
-    # If we still need more keys, place them on the most suitable platforms
+    # If we still need more keys, find emergency spawn points
     while len(positions) < required_keys:
-        if not viable_platforms:
-            break
-            
-        # Use the widest platform available
-        plat = max(viable_platforms, key=lambda p: p[2])
+        # Find the platform with the most space
+        best_platform = max(viable_platforms, key=lambda p: p['width'])
+        emergency_x = best_platform['x'] + best_platform['width'] // 2
+        emergency_y = best_platform['y'] - TILE_SIZE * 1.5
         
-        # Calculate safe position
-        key_x = plat[0] + (plat[2] / 2)  # Center of platform
-        key_y = plat[1] - TILE_SIZE * 1.5
-        
-        if is_within_bounds(key_x, key_y):
-            positions.append((key_x, key_y))
-        viable_platforms.remove(plat)
+        if is_within_bounds(emergency_x, emergency_y):
+            positions.append((emergency_x, emergency_y))
+            remaining_keys -= 1
     
-    return positions
+    # Verify and adjust any out-of-bounds positions
+    for i, (x, y) in enumerate(positions):
+        if not is_within_bounds(x, y):
+            # Clamp position within bounds
+            new_x = max(screen_bounds['left'], min(x, screen_bounds['right']))
+            new_y = max(screen_bounds['top'], min(y, screen_bounds['bottom']))
+            positions[i] = (new_x, new_y)
+    
+    return positions[:required_keys]  # Ensure we only return the required number of keys
 
 # Update the video background handling code
 def update_video_background(level):
@@ -2838,67 +3031,93 @@ class Player(pygame.sprite.Sprite):
         return game_over
 
 class World:
-    def __init__(self, level_data, deadly_data):
+    def __init__(self, level_data, deadly_data, blue_data=None):
         self.collision_tiles = []
         self.deadly_tiles = []
-        self.blue_tiles = []  # Initialize blue_tiles list
+        self.blue_tiles = []
 
         # Create collision tiles
-        for plat in level_data:
-            x = plat[0] * TILE_SIZE
-            y = plat[1] * TILE_SIZE
-            width = plat[2] * TILE_SIZE
-            height = int(plat[3] * TILE_SIZE)
-            
-            offset_x = 0
-            offset_y = 0
-            
-            collision_rect = pygame.Rect(
-                x + offset_x,
-                y + offset_y,
-                width,
-                height
-            )
-            self.collision_tiles.append(CollisionTile(x + offset_x, y + offset_y, width, height))
+        if level_data:
+            for plat in level_data:
+                x = plat[0] * TILE_SIZE
+                y = plat[1] * TILE_SIZE
+                width = plat[2] * TILE_SIZE
+                height = int(plat[3] * TILE_SIZE)
+                
+                # Add small margin for better collision
+                margin = 2
+                self.collision_tiles.append(CollisionTile(
+                    x + margin, 
+                    y + margin, 
+                    width - margin * 2,
+                    height - margin * 2
+                ))
 
         # Create deadly tiles
-        for deadly in deadly_data:
-            x = deadly[0] * TILE_SIZE
-            y = deadly[1] * TILE_SIZE
-            width = deadly[2] * TILE_SIZE
-            height = int(deadly[3] * TILE_SIZE)
-            
-            self.deadly_tiles.append(CollisionTile(x, y, width, height))
+        if deadly_data:
+            for deadly in deadly_data:
+                x = deadly[0] * TILE_SIZE
+                y = deadly[1] * TILE_SIZE
+                width = deadly[2] * TILE_SIZE
+                height = int(deadly[3] * TILE_SIZE)
+                
+                margin = 2
+                self.deadly_tiles.append(CollisionTile(
+                    x + margin, 
+                    y + margin, 
+                    width - margin * 2,
+                    height - margin * 2
+                ))
 
         # Create blue tiles
-        if current_level in LEVEL_BLUE_DATA:
-            for blue in LEVEL_BLUE_DATA[current_level]:
+        if blue_data:
+            for blue in blue_data:
                 x = blue[0] * TILE_SIZE
                 y = blue[1] * TILE_SIZE
                 width = blue[2] * TILE_SIZE
                 height = int(blue[3] * TILE_SIZE)
                 
-                self.blue_tiles.append(CollisionTile(x, y, width, height))
-
-                '''    def draw(self, screen):
-                        # Draw regular collision tiles in red
-                        for tile in self.collision_tiles:
-                            pygame.draw.rect(screen, (255, 0, 0), tile.rect, 1)
-                        
-                        # Draw deadly tiles in green
-                        for tile in self.deadly_tiles:
-                            pygame.draw.rect(screen, (0, 255, 0), tile.rect, 2)
-                        
-                        # Draw blue tiles in blue
-                        for tile in self.blue_tiles:
-                            pygame.draw.rect(screen, (0, 0, 255), tile.rect, 1)'''
+                margin = 2
+                self.blue_tiles.append(CollisionTile(
+                    x + margin, 
+                    y + margin, 
+                    width - margin * 2,
+                    height - margin * 2
+                ))
 
     def check_collision(self, player, dx, dy):
-        # Check collision with both regular and blue tiles
+        original_dx = dx
+        original_dy = dy
+
+        # Create player rect at the new position
+        next_rect_x = pygame.Rect(
+            player.rect.x + dx,
+            player.rect.y,
+            player.rect.width,
+            player.rect.height
+        )
+        
+        next_rect_y = pygame.Rect(
+            player.rect.x,
+            player.rect.y + dy,
+            player.rect.width,
+            player.rect.height
+        )
+
+        # Check deadly collisions first
+        for tile in self.deadly_tiles:
+            if tile.rect.colliderect(player.rect):
+                return "deadly"
+
+        # Check horizontal collisions
         for tile in self.collision_tiles + self.blue_tiles:
-            if tile.rect.colliderect(player.rect.x + dx, player.rect.y, player.width, player.height):
+            if tile.rect.colliderect(next_rect_x):
                 dx = 0
-            if tile.rect.colliderect(player.rect.x, player.rect.y + dy, player.width, player.height):
+                break
+
+        # Check vertical collisions
+        for tile in self.collision_tiles + self.blue_tiles:
+            if tile.rect.colliderect(next_rect_y):
                 if player.vel_y < 0:
                     dy = tile.rect.bottom - player.rect.top
                     player.vel_y = 0
@@ -2906,75 +3125,68 @@ class World:
                     dy = tile.rect.top - player.rect.bottom
                     player.vel_y = 0
                     player.in_air = False
-                    
-        # Check deadly collisions
-        for tile in self.deadly_tiles:
-            if tile.rect.colliderect(player.rect):
-                return "deadly"
-                
+                break
+
         return dx, dy
 
 def init_level(level_num):
-    """Initialize a new level with all required components"""
     global keys_collected, game_start_time, current_level, player, camera
-    global ghost, movement_enabled, total_pause_time
-    
+    global ghost, movement_enabled, total_pause_time, world
+
     try:
         # Reset level state
         keys_collected = 0
         current_level = level_num
-        game_start_time = None  # Reset timer - will be started after transition
+        game_start_time = None
         total_pause_time = timedelta(0)
         movement_enabled = False
-        
+
         # Stop all existing sounds
         if 'player' in globals() and player is not None:
             player.stop_sounds()
         if 'camera' in globals() and camera is not None:
             camera.stop_sounds()
-        
+
         # Clean up existing camera if it exists
         if 'camera' in globals() and camera is not None:
             camera.cleanup()
-        
+
         # Load level data
         platforms = LEVEL_PLATFORM_DATA.get(level_num, [])
-        if not platforms:
-            raise ValueError(f"No platform data found for level {level_num}")
-            
         deadly_tiles = LEVEL_DEADLY_DATA.get(level_num, [])
-        enemy_data = LEVEL_ENEMY_DATA.get(level_num, [])
-        
-        # Create world
-        world = World(platforms, deadly_tiles)
-        
+        blue_tiles = LEVEL_BLUE_DATA.get(level_num, [])
+
+        # Create a new World instance with the current level data
+        world = World(platforms, deadly_tiles, blue_tiles)
+
         # Calculate spawn position
         spawn_pos = find_spawn_position(platforms)
-        
+
         # Create player
         player = Player(spawn_pos[0], spawn_pos[1])
-        
+
         # Create ghost with appropriate level difficulty
         ghost = Ghost(SCREEN_WIDTH, SCREEN_HEIGHT, player, level_num)
-        
+
         # Set up door
         door_pos = find_door_position(platforms)
         door = Door(door_pos[0], door_pos[1])
-        
+
         # Generate and place keys
         keys_group = pygame.sprite.Group()
         key_positions = generate_key_positions(level_num)
         for pos in key_positions:
             adjusted_y = pos[1] + TILE_SIZE - 20
             keys_group.add(Key(pos[0], adjusted_y))
-            
+
         # Create enemies
         moving_enemies = pygame.sprite.Group()
+        enemy_data = LEVEL_ENEMY_DATA.get(level_num, [])
         for enemy_info in enemy_data:
             x, y, direction, boundary_start, boundary_end = enemy_info
             enemy = MovingEnemy(x * TILE_SIZE, y * TILE_SIZE, direction, boundary_start, boundary_end)
             moving_enemies.add(enemy)
-            
+
         # Reset camera
         camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
         camera.transitioning = False
@@ -2983,10 +3195,10 @@ def init_level(level_num):
         camera.door_zoom = False
         camera.door_zoom_target = None
         camera.reset_on_death = False
-        
+
         print(f"Level {level_num} initialized successfully")
         return keys_group, door, world, moving_enemies, player, ghost
-        
+
     except Exception as e:
         import traceback
         print(f"\nError initializing level {level_num}:")
@@ -2995,8 +3207,7 @@ def init_level(level_num):
         print("Traceback:")
         traceback.print_exc()
         return None, None, None, None, None, None
-
-
+    
 class MovingEnemy(pygame.sprite.Sprite):
     def __init__(self, x, y, direction, boundary_start, boundary_end):
         super().__init__()
@@ -3342,13 +3553,6 @@ while running:
         if event.type == pygame.QUIT:
             running = False
             break
-            
-        # Handle fullscreen toggle and update scaling
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RSHIFT:
-                toggle_fullscreen()
-                # Recreate UI elements with new scaling
-                initialize_game_objects()
                 
         # Global pause handling
         if current_state == "playing" and not paused:
@@ -3490,35 +3694,28 @@ while running:
             elif pygame.sprite.collide_rect(player, door) and not door.entered:
                 door.entered = True
                 camera.stop_sounds()
-                
-                # Add minigame check here
-                if current_level > 0:  # Skip minigame for tutorial level
-                    minigame_result = load_minigame(current_level)
-                    if not minigame_result:
-                        # If minigame wasn't completed, reset door state and return
+                        
+                if current_level == 5:  # Special handling for Level 5 completion
+                    # Transition to ending scenes
+                    scene_manager.scene_index = 16  # Index for the ending scene
+                    scene_manager.current_scene = Scene(
+                        screen,
+                        scene_manager.scenes[scene_manager.scene_index],
+                        scene_manager.player_name
+                    )
+                    current_state = "scene"
+                elif current_level >= 0:  # For all other levels
+                    minigame_result = load_minigame(current_level + 1)
+                    if minigame_result:
+                        next_state = handle_minigame_completion(current_level + 1)
+                        if next_state != "error":
+                            current_state = next_state
+                    else:
+                        # Reset door state if minigame wasn't completed
                         door.entered = False
                         door.is_open = False
                         door.sound_played = False
                         continue
-                
-                level_complete_mapping = {
-                    0: (1, 7),    # Tutorial -> Level 1, Scene 8
-                    1: (2, 9),    # Level 1 -> Level 2, Scene 10
-                    2: (3, 11),   # Level 2 -> Level 3, Scene 12
-                    3: (4, 13),   # Level 3 -> Level 4, Scene 14
-                    4: (5, 15),   # Level 4 -> Level 5, Scene 16
-                    5: (None, 17) # Level 5 -> Ending (Scene 18)
-                }
-                
-                if current_level in level_complete_mapping:
-                    next_level, next_scene = level_complete_mapping[current_level]
-                    if next_level is None:
-                        current_state = "ending_scenes"
-                    else:
-                        current_level = next_level
-                        current_state = "level_transition"
-                    scene_manager.scene_index = next_scene
-                    scene_manager.current_scene = Scene(screen, scene_manager.scenes[next_scene])
         
         # Update camera and create zoomed view with scaling
         camera.update(player, keys_collected, door, LEVEL_REQUIREMENTS[current_level])

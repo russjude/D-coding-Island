@@ -344,73 +344,80 @@ class Game:
         return 'restart'
 
     def run(self):
-        """Main game loop with proper error handling"""
-        if not pygame.display.get_surface():
-            return False
-            
-        clock = pygame.time.Clock()
-        running = True
+            """Main game loop with proper error handling"""
+            if not pygame.display.get_surface():
+                return False
+                
+            clock = pygame.time.Clock()
+            running = True
 
-        try:
-            while running:
-                if not pygame.display.get_surface():
-                    self.cleanup()
-                    return False
-                
-                self.screen.blit(self.background_image, (0, 0))
-                draw_grid(self.screen, self.game_font, self.guesses, self.current_guess, self.secret_word)
-                self.timer.draw(self.screen, self.game_font)
-                
-                should_restart = self.feedback.update(self.screen, self.secret_word, self.game_font)
-                if should_restart == 'restart':
-                    self.reset_game_state()
-                    continue
-                elif should_restart:  # True means win condition
-                    return True
-                
-                if self.timer.should_show_warning():
-                    self.feedback.show_gif('time')
-                
-                if self.timer.is_finished() and not self.game_over:
-                    if self.handle_lose() == 'restart':
+            try:
+                while running:
+                    if not pygame.display.get_surface():
+                        self.cleanup()
+                        return False
+                    
+                    self.screen.blit(self.background_image, (0, 0))
+                    draw_grid(self.screen, self.game_font, self.guesses, self.current_guess, self.secret_word)
+                    self.timer.draw(self.screen, self.game_font)
+                    
+                    should_restart = self.feedback.update(self.screen, self.secret_word, self.game_font)
+                    if should_restart == 'restart':
                         self.reset_game_state()
                         continue
+                    elif should_restart:  # True means win condition
+                        return True
+                    
+                    if self.timer.should_show_warning():
+                        self.feedback.show_gif('time')
+                    
+                    if self.timer.is_finished() and not self.game_over:
+                        if self.handle_lose() == 'restart':
+                            self.reset_game_state()
+                            continue
 
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                        break
-                        
-                    if event.type == pygame.KEYDOWN and not self.game_over:
-                        if event.key == pygame.K_RETURN:
-                            if len(self.current_guess) < WORD_LENGTH:
-                                self.feedback.show_gif('short')
-                            elif len(self.current_guess) == WORD_LENGTH:
-                                self.guesses.append(self.current_guess)
-                                if self.current_guess == self.secret_word or self.current_guess == "RUSSS":
-                                    if self.handle_win():
-                                        return True
-                                    else:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            running = False
+                            break
+                            
+                        if event.type == pygame.KEYDOWN and not self.game_over:
+                            if event.key == pygame.K_RETURN:
+                                if len(self.current_guess) < WORD_LENGTH:
+                                    self.feedback.show_gif('short')
+                                elif len(self.current_guess) == WORD_LENGTH:
+                                    current_word = self.current_guess.upper()
+                                    
+                                    # Check for win condition before appending
+                                    if current_word == self.secret_word or current_word == "RUSSS":
+                                        self.guesses.append(current_word)
+                                        self.current_guess = ""  # Clear immediately
+                                        if self.handle_win():
+                                            return True
                                         return False
-                                elif len(self.guesses) >= GRID_SIZE:
-                                    if self.handle_lose() == 'restart':
-                                        self.reset_game_state()
-                                self.current_guess = ""
-                        elif event.key == pygame.K_BACKSPACE:
-                            self.current_guess = self.current_guess[:-1]
-                        elif len(self.current_guess) < WORD_LENGTH and event.unicode.isalpha():
-                            self.current_guess += event.unicode.upper()
+                                    
+                                    # Handle normal guesses
+                                    self.guesses.append(current_word)
+                                    if len(self.guesses) >= GRID_SIZE:
+                                        if self.handle_lose() == 'restart':
+                                            self.reset_game_state()
+                                    self.current_guess = ""
+                                            
+                            elif event.key == pygame.K_BACKSPACE:
+                                self.current_guess = self.current_guess[:-1]
+                            elif len(self.current_guess) < WORD_LENGTH and event.unicode.isalpha():
+                                self.current_guess += event.unicode.upper()
 
-                pygame.display.flip()
-                clock.tick(60)
+                    pygame.display.flip()
+                    clock.tick(60)
 
-        except Exception as e:
-            print(f"Error in game loop: {e}")
-            return False
-        finally:
-            self.cleanup()
-        
-        return self.won
+            except Exception as e:
+                print(f"Error in game loop: {e}")
+                return False
+            finally:
+                self.cleanup()
+            
+            return self.won
 
 def draw_box(screen, game_font, x, y, color, letter='', border_color=None):
     """Draw a letter box with specified styling and content"""
