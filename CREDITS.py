@@ -1,3 +1,38 @@
+"""
+Decoding Island Credits Screen
+Primary Author: Geoff Macias
+
+A dedicated credits sequence system that handles video playback and branch management
+for the credits section of Decoding Island. Features smooth video rendering with
+frame buffering for optimal performance.
+
+System Components:
+1. Video Playback:
+   - Thread-based frame buffering system
+   - Frame rotation and scaling for proper display
+   - Performance-optimized rendering
+   - Automatic frame recycling for continuous playback
+
+2. Branch Management:
+   - Git integration for navigating game sections
+   - State preservation during transitions
+   - Automatic stashing of changes
+   - Error handling for failed transitions
+
+3. User Interface:
+   - Space key for returning to main menu
+   - Escape key for quitting
+   - User prompts and instructions
+   - Smooth video-to-menu transitions
+
+Technical Requirements:
+- Python 3.x
+- Pygame for display and input
+- OpenCV for video processing
+- GitPython for branch management
+- Threading for frame buffering
+"""
+
 import pygame
 import cv2
 import os

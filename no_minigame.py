@@ -1,3 +1,47 @@
+"""
+Decoding Island Main Game Engine
+Primary Authors: Russel Rafanan, Jessica Ng, Geoff Macias
+
+Core game engine for Decoding Island, a platformer-based educational game that 
+combines puzzle solving with programming challenges. Players navigate through
+multiple levels while collecting keys and solving mini-games.
+
+Game Architecture:
+1. Core Engine Components:
+   - Camera system with dynamic zoom and transitions
+   - Collision detection with platform, hazard, and key interactions
+   - Scene management for storytelling and level transitions
+   - Player movement and animation system
+   - Enemy AI and pathing
+   - Resource management (sounds, images, animations)
+
+2. Level Structure:
+   - 6 unique levels (Tutorial + 5 main levels)
+   - Each level connects to a specific minigame
+   - Progressive difficulty and complexity
+   - Dynamic key placement and platform generation
+
+3. Game Features:
+   - Real-time background video rendering
+   - Dynamic camera zoom for exploration
+   - Health and progress tracking
+   - Interactive NPCs and hazards
+   - Pause system with state preservation
+   - Achievement tracking
+   - Leaderboard system
+
+Technical Requirements:
+- Python 3.x
+- Pygame for graphics and input
+- OpenCV for video background processing
+- PIL for image handling
+- NumPy for array operations
+
+The game uses a modular architecture where each major component (Player, Camera,
+Scene Manager, etc.) is encapsulated in its own class, allowing for easy
+maintenance and feature additions.
+"""
+
 import pygame
 from pygame.locals import *
 from pygame import mixer

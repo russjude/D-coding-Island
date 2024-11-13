@@ -1,3 +1,42 @@
+"""
+Decoding Island Main Menu System
+Primary Authors: Russel Rafanan, Jessica Ng, Geoff Macias
+
+The main menu interface for Decoding Island, featuring animated video backgrounds,
+interactive buttons, and seamless transitions between game states. This system
+handles the initial game setup, resource loading, and navigation between different
+game modes.
+
+Menu Components:
+1. Splash Screen:
+   - Video-based intro animation
+   - Click-to-continue functionality
+   - Background music and sound effects
+
+2. Main Menu:
+   - Animated video background
+   - Dynamic button system with hover effects
+   - Three main options: Play, Credits, Quit
+   - Customized scaling for different resolutions
+
+3. Credits System:
+   - Full-screen video playback
+   - Return to menu functionality
+   - Audio state management
+
+Technical Features:
+- Threaded video loading for smooth playback
+- Frame buffering system for performance
+- Proper resource cleanup
+- Error handling for missing assets
+- Audio channel management
+- Fullscreen toggle support
+
+The menu uses a buffer-based video system to ensure smooth playback of
+animated elements while maintaining responsive controls and efficient
+resource usage.
+"""
+
 import pygame
 import cv2
 from pygame.locals import *

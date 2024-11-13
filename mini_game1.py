@@ -1,3 +1,27 @@
+"""
+Decoding Island: Mathematical Tic-Tac-Toe Educational Game
+Primary Author: Palak Lakhani
+Secondary Author: Jessica Ng
+Enhanced by: Calude AI
+
+A mathematical puzzle game that combines Tic-Tac-Toe with arithmetic problem-solving.
+Players must correctly answer math questions to place their moves on the board.
+The game features an interactive GUI built with Pygame, animated feedback,
+and a computer opponent.
+
+Features:
+- Interactive Tic-Tac-Toe board
+- Mathematical question system
+- Animated feedback using GIF sprites
+- Computer opponent with basic AI
+- Score tracking and win detection
+
+Requirements:
+- Python 3.x
+- Pygame
+- Pillow (PIL)
+"""
+
 import pygame
 import random
 from PIL import Image
@@ -6,7 +30,7 @@ import os
 import sys
 from pathlib import Path
 
-# Constants
+# Window and board dimensions for proper scaling
 SCREEN_WIDTH = 1539
 SCREEN_HEIGHT = 940
 BOARD_WIDTH = 500
@@ -17,7 +41,7 @@ FONT_PATH = "Minigame1/Palak minigame img/PRESSSTART2P.ttf"
 FEEDBACK_X = SCREEN_WIDTH - 420
 FEEDBACK_Y = SCREEN_HEIGHT // 2 - 300
 
-# Colors
+# Game color palette
 PALAK_LEVEL_1 = {
     "blue": (37, 56, 142),
     "light_green": (205, 215, 191),
@@ -28,14 +52,18 @@ PALAK_LEVEL_1 = {
 }
 
 class CachedGIFImage:
+    """
+    Handles loading and playback of GIF animations for game feedback.
+    Caches frames in memory for smooth playback and manages animation timing.
+    """
     def __init__(self, filename):
         self.frames = []
         self.current_frame = 0
-        self.frame_delay = 1.0 / 30
+        self.frame_delay = 1.0 / 30  # 30 FPS animation
         self.last_update = 0
         self.done_playing = False
         self.play_count = 0
-        self.max_plays = 1
+        self.max_plays = 1  # Number of times to play animation
         
         try:
             gif_path = Path(filename)
@@ -43,6 +71,7 @@ class CachedGIFImage:
                 raise FileNotFoundError(f"GIF file not found: {filename}")
                 
             with Image.open(filename) as img:
+                # Extract and process each frame of the GIF
                 for frame_idx in range(getattr(img, 'n_frames', 1)):
                     img.seek(frame_idx)
                     frame = img.convert('RGBA')
@@ -53,6 +82,7 @@ class CachedGIFImage:
                     self.frames.append(pygame_surface)
         except Exception as e:
             print(f"Error loading GIF {filename}: {e}", file=sys.stderr)
+            # Create error indicator square if GIF fails to load
             surface = pygame.Surface((400, 400))
             surface.fill((255, 0, 0))
             self.frames = [surface]

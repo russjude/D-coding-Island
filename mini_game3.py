@@ -1,8 +1,26 @@
 """
-mini-game3.py
+Rock Paper Scissors Word Collection Game
+Primary Author: Geoff Macias
+Secondary Authors: Jessica Ng, Russel Rafanan
+Enhanced by: Calude AI
 
-A Rock Paper Scissors word collection game with improved transitions
-and resource management.
+A hybrid game combining Rock Paper Scissors with word unscrambling mechanics.
+Players collect letters by winning RPS matches against the computer, then
+unscramble the collected letters to guess a technology-related word.
+
+Game Flow:
+1. Play Rock Paper Scissors to collect letters
+2. Each win reveals one letter of the target word
+3. After collecting all letters, unscramble them to guess the word
+4. Player gets 3 attempts to guess correctly
+
+Features:
+- Interactive Rock Paper Scissors gameplay
+- Animated opponent hand movements
+- Visual feedback for player choices
+- Progressive letter collection system
+- Word unscrambling challenge
+- Technology-themed vocabulary
 """
 
 import pygame
@@ -11,38 +29,45 @@ import time
 import sys
 import os
 
-# Constants
+# Screen dimensions for 16:9 aspect ratio
 WIDTH = 1539
 HEIGHT = 940
+
+# Basic color definitions
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BROWN = (122, 92, 72)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 
-# Technology-related word bank
+# Words used in the game - all technology related
 TECH_WORDS = [
     "CODING", "PYTHON", "ROUTER", "SERVER", "BINARY",
     "GITHUB", "LINUX", "DOCKER", "CLOUD", "GAMING",
 ]
 
 class WordGame:
+    """
+    Handles the word guessing portion of the game, including letter collection,
+    word display, and guess validation.
+    """
     def __init__(self):
         self.reset()
 
     def reset(self):
+        # Pick a random word and set up game state
         self.target_word = random.choice(TECH_WORDS)
-        self.collected_letters = []
-        self.displayed_word = ["_"] * len(self.target_word)
-        self.guessing_phase = False
-        self.attempts_left = 3
-        self.current_guess = ""
-        self.message = ""
-        self.game_over = False
-        self.won = False
-        self.scrambled_letters = []
-        self.should_restart = False
-        self.game_over_timer = 0
+        self.collected_letters = []           # Letters won from RPS matches
+        self.displayed_word = ["_"] * len(self.target_word)  # Word display with blanks
+        self.guessing_phase = False          # True when all letters collected
+        self.attempts_left = 3               # Guesses allowed
+        self.current_guess = ""              # Player's current input
+        self.message = ""                    # Feedback message
+        self.game_over = False              # Game completion flag
+        self.won = False                    # Win/loss status
+        self.scrambled_letters = []         # Letters in random order
+        self.should_restart = False         # Reset flag
+        self.game_over_timer = 0            # Delay before reset
 
     def add_letter(self):
         available_positions = []

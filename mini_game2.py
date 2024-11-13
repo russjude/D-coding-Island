@@ -1,12 +1,25 @@
 """
-mini-game2.py
-
+Decoding Island: Programming Word Puzzle Game
 Primary Author: Russel Rafanan
-Editor: Jessica Ng
-Enhanced by: Claude
+Secondary Author: Jessica Ng
+Enhanced by: Calude AI
 
-A Python-based word guessing game inspired by Wordle, featuring a programming-themed
-word list, timer, and GIF feedback system with improved transitions.
+A time-based word puzzle game that challenges players to guess programming-related 
+words within 90 seconds. The game uses a Wordle-style feedback system where:
+- Green: Letter is in the correct position
+- Yellow: Letter exists in the word but wrong position
+- Gray: Letter is not in the word
+
+Game Features:
+- Programming vocabulary word bank
+- 90-second time limit with 30-second warning
+- Animated feedback using sprite-based GIFs 
+- 6 attempts to guess the 5-letter word
+- Hidden cheat code "RUSSS" for instant win
+
+Required Libraries:
+- Pygame for graphics and input handling
+- PIL (Python Imaging Library) for GIF animation
 """
 
 import pygame
@@ -18,30 +31,30 @@ import time
 
 pygame.init()
 
-# Screen and game constants
+# Display settings for 16:9 widescreen monitors
 SCREEN_WIDTH = 1539
 SCREEN_HEIGHT = 940
-GRID_SIZE = 6
-WORD_LENGTH = 5
-FONT_SIZE = 50
-ANSWER_FONT_SIZE = 40
-BOX_SIZE = 100
-BOX_SPACING = 15
-BOX_BORDER_RADIUS = 5
+GRID_SIZE = 6      # Number of guess attempts
+WORD_LENGTH = 5    # Length of words to guess
+FONT_SIZE = 50     # Main game text size
+ANSWER_FONT_SIZE = 40  # Size for "word was..." text
+BOX_SIZE = 100     # Size of letter boxes
+BOX_SPACING = 15   # Spacing between boxes
+BOX_BORDER_RADIUS = 5  # Rounded corners on boxes
 
-# Feedback position constants
-FEEDBACK_X = SCREEN_WIDTH - 420
-FEEDBACK_Y = SCREEN_HEIGHT // 2 - 300
+# Position for animated feedback sprites
+FEEDBACK_X = SCREEN_WIDTH - 420  # Right side of screen
+FEEDBACK_Y = SCREEN_HEIGHT // 2 - 300  # Vertically centered
 
-# Color scheme definitions
-BACKGROUND_COLOR = (18, 18, 19)
-EMPTY_BOX_COLOR = (58, 58, 60)
-BORDER_COLOR = (58, 58, 60)
-FILLED_BOX_COLOR = (58, 58, 60)
-GREEN = (83, 141, 78)
-YELLOW = (181, 159, 59)
-GRAY = (58, 58, 60)
-TEXT_COLOR = (255, 255, 255)
+# Game interface colors
+BACKGROUND_COLOR = (18, 18, 19)     # Dark background
+EMPTY_BOX_COLOR = (58, 58, 60)      # Unfilled letter box
+BORDER_COLOR = (58, 58, 60)         # Box outlines
+FILLED_BOX_COLOR = (58, 58, 60)     # Box with letter
+GREEN = (83, 141, 78)               # Correct letter position
+YELLOW = (181, 159, 59)             # Letter in wrong position
+GRAY = (58, 58, 60)                 # Letter not in word
+TEXT_COLOR = (255, 255, 255)        # Letter display color
 
 # Programming-themed word bank plus master word
 word_list = [

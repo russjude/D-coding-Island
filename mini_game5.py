@@ -1,6 +1,36 @@
 """
-Mini-Game 5: Programming Quiz Battle
-A Python-based educational game where players battle through two levels of programming concepts.
+Programming Quiz Battle
+Primary Author: Jacobo 
+Secondary Author: Jessica Ng
+
+A quiz-based battle game that tests programming knowledge through a matching mechanic.
+Players face off against an opponent in two rounds of increasing difficulty, matching
+programming concepts with their definitions while managing their health bar.
+
+Game Features:
+- Two-round battle system with health bars
+- Time-based challenges with adaptive difficulty
+- Visual feedback through animated character reactions
+- Matching puzzle mechanics for learning programming concepts
+- Progressive damage system
+- Bonus time rewards for quick completion
+
+Game Flow:
+1. Round 1: Basic programming concepts (60 seconds)
+   - Fast completion (<30s) unlocks more time for Round 2
+   - Successful matches damage the opponent
+   - Wrong matches damage the player
+   
+2. Round 2: Advanced programming concepts
+   - Time limit based on Round 1 performance
+   - Increased difficulty with harder concepts
+   - Must win both rounds to complete the game
+
+Required Assets:
+- Character reaction animations
+- Battle background
+- Custom pixel font
+- Sound effects
 """
 
 import pygame 
