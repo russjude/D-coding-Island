@@ -114,8 +114,6 @@ class TextInput:
 
 class Game:
     def __init__(self):
-        # Don't initialize pygame here since it's already initialized
-        # Just check if we need to reset the display
         if not pygame.get_init() or not pygame.display.get_surface():
             pygame.init()
             
@@ -150,7 +148,6 @@ class Game:
         self.board_surface = pygame.Surface((BOARD_WIDTH, BOARD_HEIGHT), pygame.SRCALPHA)
         self.draw_board_lines(self.board_surface)
         
-        # Your existing questions list here
         self.questions = [
             ("What is the result of 5 + 3?", "8"),
             ("What is the result of 10 - 4?", "6"),
@@ -178,6 +175,33 @@ class Game:
         self.resources_loaded = True
         self.current_animation = "initial"
         self.restart_timer = None
+
+    def wait_for_gif_completion(self, animation_name, duration=2.0):
+        """Wait for a GIF animation to complete while keeping the game responsive"""
+        if animation_name not in self.feedback_gifs:
+            return
+            
+        start_time = time.time()
+        self.feedback_gifs[animation_name].reset()
+        
+        while time.time() - start_time < duration:
+            if not pygame.display.get_surface():
+                return False
+                
+            self.screen.blit(self.background, (0, 0))
+            self.draw_board()
+            done = self.feedback_gifs[animation_name].render(
+                self.screen, 
+                (FEEDBACK_X, FEEDBACK_Y)
+            )
+            pygame.display.flip()
+            pygame.time.wait(50)
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+        
+        return True
 
     def draw_board_lines(self, surface):
         surface.fill((0, 0, 0, 0))
@@ -235,7 +259,7 @@ class Game:
         end_y = (end_idx // 3) * cell_height + cell_height // 2
         
         return (start_x, start_y), (end_x, end_y)
-    
+
     def draw_board(self):
         self.screen.blit(self.board_surface, (BOARD_TOP_LEFT_X, BOARD_TOP_LEFT_Y))
         
@@ -278,7 +302,7 @@ class Game:
         if BOARD_TOP_LEFT_X <= x < BOARD_TOP_LEFT_X + BOARD_WIDTH and \
            BOARD_TOP_LEFT_Y <= y < BOARD_TOP_LEFT_Y + BOARD_HEIGHT:
             col = (x - BOARD_TOP_LEFT_X) // (BOARD_WIDTH // 3)
-            row = (y - BOARD_TOP_LEFT_Y) // (BOARD_HEIGHT // 3)
+            row = (y - BOARD_TOP_LEFT_Y) // (BOARD_HEIGHT//3)
             idx = row * 3 + col
             if 0 <= idx < 9 and self.board[idx] == ' ':
                 self.board[idx] = 'X'
@@ -320,44 +344,16 @@ class Game:
         except ValueError:
             return user_answer == correct_answer or user_answer == "palak"
 
-    def draw_feedback(self):
-        if self.current_animation and self.current_animation in self.feedback_gifs:
-            done = self.feedback_gifs[self.current_animation].render(
-                self.screen, 
-                (FEEDBACK_X, FEEDBACK_Y)
-            )
-            if done:
-                if self.current_animation == "initial":
-                    self.current_animation = "click_anywhere"
-                    self.feedback_gifs[self.current_animation].reset()
-                elif self.current_animation == "click_anywhere":
-                    self.current_animation = None
-                else:
-                    self.current_animation = None
-
     def handle_lose(self):
         """Handle loss with automatic restart"""
         if not pygame.display.get_surface():
             return False
             
         self.current_animation = "you_lose"
-        self.feedback_gifs[self.current_animation].reset()
-        self.restart_timer = time.time()
-        
-        while time.time() - self.restart_timer < 2.0:
-            if not pygame.display.get_surface():
-                return False
-                
-            self.screen.blit(self.background, (0, 0))
-            self.draw_board()
-            self.draw_feedback()
-            pygame.display.flip()
-            pygame.time.wait(50)
+        if not self.wait_for_gif_completion("you_lose", 2.0):
+            return False
             
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return False
-        
+        # Reset the game automatically
         return 'restart'
 
     def handle_tie(self):
@@ -366,23 +362,10 @@ class Game:
             return False
             
         self.current_animation = "tie"
-        self.feedback_gifs[self.current_animation].reset()
-        self.restart_timer = time.time()
-        
-        while time.time() - self.restart_timer < 2.0:
-            if not pygame.display.get_surface():
-                return False
-                
-            self.screen.blit(self.background, (0, 0))
-            self.draw_board()
-            self.draw_feedback()
-            pygame.display.flip()
-            pygame.time.wait(50)
+        if not self.wait_for_gif_completion("tie", 2.0):
+            return False
             
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return False
-        
+        # Reset the game automatically
         return 'restart'
 
     def handle_win(self):
@@ -391,22 +374,9 @@ class Game:
             return False
             
         self.current_animation = "you_win"
-        self.feedback_gifs[self.current_animation].reset()
-        
-        start_time = time.time()
-        while time.time() - start_time < 2.0:
-            if not pygame.display.get_surface():
-                return False
-                
-            self.screen.blit(self.background, (0, 0))
-            self.draw_board()
-            self.draw_feedback()
-            pygame.display.flip()
-            pygame.time.wait(50)
+        if not self.wait_for_gif_completion("you_win", 2.0):
+            return False
             
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return False
         return True
 
     def cleanup(self):
@@ -421,7 +391,7 @@ class Game:
             self.restart_timer = None
         except Exception as e:
             print(f"Error during cleanup: {e}")
-    
+
     def run(self):
         if not pygame.display.get_surface():
             return False
@@ -450,6 +420,7 @@ class Game:
                                 self.computer_move()
                                 game_vars['first_round'] = False
                                 self.current_animation = "type_answer"
+                                self.wait_for_gif_completion("type_answer", 2.0)
                                 game_vars['can_place_x'] = False
                                 game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                             else:
@@ -465,11 +436,19 @@ class Game:
                                     self.computer_move()
                                     won, _ = self.check_winner('O')
                                     if won:
-                                        self.handle_lose()
-                                        game_vars['game_over'] = True
+                                        result = self.handle_lose()
+                                        if result == 'restart':
+                                            game_vars = self.reset_game()
+                                            continue
+                                        else:
+                                            return False
                                     elif self.is_full():
-                                        self.current_animation = "tie"
-                                        game_vars['game_over'] = True
+                                        result = self.handle_tie()
+                                        if result == 'restart':
+                                            game_vars = self.reset_game()
+                                            continue
+                                        else:
+                                            return False
                                     game_vars['can_place_x'] = False
                 
                 elif not game_vars['first_round'] and not game_vars['game_over']:
@@ -477,18 +456,28 @@ class Game:
                     if result is not None:
                         if self.validate_answer(result, game_vars['current_answer']):
                             self.current_animation = "correct"
+                            self.wait_for_gif_completion("correct", 2.0)
                             game_vars['can_place_x'] = True
                             game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                         else:
                             self.current_animation = "incorrect"
+                            self.wait_for_gif_completion("incorrect", 2.0)
                             self.computer_move()
                             won, _ = self.check_winner('O')
                             if won:
-                                self.handle_lose()
-                                game_vars['game_over'] = True
+                                result = self.handle_lose()
+                                if result == 'restart':
+                                    game_vars = self.reset_game()
+                                    continue
+                                else:
+                                    return False
                             elif self.is_full():
-                                self.current_animation = "tie"
-                                game_vars['game_over'] = True
+                                result = self.handle_tie()
+                                if result == 'restart':
+                                    game_vars = self.reset_game()
+                                    continue
+                                else:
+                                    return False
                             game_vars['current_question'], game_vars['current_answer'] = random.choice(self.questions)
                         text_input.text = ""
                         text_input.text_surface = text_input.font.render("", True, PALAK_LEVEL_1["dark_gray"])
@@ -496,7 +485,21 @@ class Game:
             # Draw game state
             self.screen.blit(self.background, (0, 0))
             self.draw_board()
-            self.draw_feedback()
+            
+            # Handle ongoing animations
+            if self.current_animation and self.current_animation in self.feedback_gifs:
+                done = self.feedback_gifs[self.current_animation].render(
+                    self.screen,
+                    (FEEDBACK_X, FEEDBACK_Y)
+                )
+                if done:
+                    if self.current_animation == "initial":
+                        self.current_animation = "click_anywhere"
+                        self.feedback_gifs[self.current_animation].reset()
+                    elif self.current_animation == "click_anywhere":
+                        self.current_animation = None
+                    else:
+                        self.current_animation = None
             
             if not game_vars['first_round'] and not game_vars['game_over']:
                 question_surface = self.question_font.render(
@@ -536,8 +539,15 @@ def main():
                 if pygame.mixer.get_init():
                     pygame.mixer.stop()
             except:
-                    pass
+                pass
             return False
+       
+    pygame.quit()
+    return False
+
+def main():
+    game = Game()
+    return game.run()  # Return the game result
 
 if __name__ == "__main__":
     main()
