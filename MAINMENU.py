@@ -3,10 +3,22 @@ import cv2
 from pygame.locals import *
 from pygame import mixer
 import os
-import git
 from threading import Thread
 from queue import Queue
 import time
+import subprocess
+import git
+import sys
+
+# Suppress macOS IMK messages
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
+# Redirect stderr to devnull to suppress IMK messages
+if sys.platform == 'darwin':  # Only on macOS
+    stderr = sys.stderr
+    with open(os.devnull, 'w') as fnull:
+        sys.stderr = fnull
+        import pygame
+        sys.stderr = stderr
 
 # Initialize Pygame
 pygame.init()
@@ -337,58 +349,100 @@ def switch_branch(MINI_GAME):
 
 # Update the main function
 def main():
-    pygame.init()
-    mixer.init()
-
-    # Initialize audio channels if not already initialized
-    if pygame.mixer.get_num_channels() < 2:
-        pygame.mixer.set_num_channels(2)
-
-    # Load and play the music during the splash screen
-    splash = SplashScreen("Graphics/SPLASH VIDEO.mp4")
     try:
-        mixer.music.load("Audio/Shining Sound Effect.mp3")
-        mixer.music.play(1)  # Play once (1)
-    except pygame.error:
-        print("Warning: Could not load splash screen music")
+        pygame.init()
+        mixer.init()
 
-    # Run the splash screen and stop if it doesn't complete
-    if not splash.run():
-        pygame.quit()
-        return
+        if pygame.mixer.get_num_channels() < 2:
+            pygame.mixer.set_num_channels(2)
 
-    # Stop the music before the main menu opens
-    mixer.music.stop()
+        splash = SplashScreen("Graphics/SPLASH VIDEO.mp4")
+        try:
+            mixer.music.load("Audio/Shining Sound Effect.mp3")
+            mixer.music.play(1)
+        except pygame.error:
+            print("Warning: Could not load splash screen music")
 
-    try:
-        # Load menu background music
-        mixer.music.load("Audio/BACKGROUND_MUSIC.mp3")
-    except pygame.error:
-        print("Warning: Could not load menu background music")
+        if not splash.run():
+            pygame.quit()
+            return
 
-    # Initialize and run the main menu
-    menu = MainMenu()
-    
-    while True:
-        action = menu.run()
+        mixer.music.stop()
+
+        try:
+            mixer.music.load("Audio/BACKGROUND_MUSIC.mp3")
+        except pygame.error:
+            print("Warning: Could not load menu background music")
+
+        menu = MainMenu()
         
-        if action == "quit":
-            break
-        elif action == "credits":
-            try:
-                import CREDITS
-                print("Opened credits...")
-            except ImportError:
-                print("Could not load CREDITS module")
-        elif action == "play":
-            try:
-                import Archive.FINAL_GAME2 as FINAL_GAME2
-                print("Starting mini-game...")
-            except ImportError:
-                print("Could not load MINI_GAME module")
-    
-    pygame.quit()
+        while True:
+            action = menu.run()
+            if action == "quit":
+                break
+            elif action == "credits":
+                print("Switching to credits branch...")
+                if switch_branch("credits"):
+                    try:
+                        # Stop all audio and quit pygame before launching new script
+                        pygame.mixer.music.stop()
+                        pygame.mixer.quit()
+                        pygame.quit()
+                        
+                        # Suppress IMK messages when running subprocess
+                        env = os.environ.copy()
+                        env['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
+                        subprocess.run(["python", "CREDITS.py"], 
+                                     check=True, 
+                                     env=env, 
+                                     stderr=subprocess.DEVNULL if sys.platform == 'darwin' else None)
+                        
+                        # Reinitialize pygame after returning
+                        pygame.init()
+                        mixer.init()
+                    except FileNotFoundError:
+                        print("Could not find the CREDITS.py file")
+                    except subprocess.CalledProcessError as e:
+                        print(f"Error running CREDITS.py: {e}")
+                else:
+                    print("Failed to switch to credits branch")
+            elif action == "play":
+                print("Switching to minigame branch...")
+                if switch_branch("minigame"):
+                    try:
+                        # Stop all audio and quit pygame before launching new script
+                        pygame.mixer.music.stop()
+                        pygame.mixer.quit()
+                        pygame.quit()
+                        
+                        # Suppress IMK messages when running subprocess
+                        env = os.environ.copy()
+                        env['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
+                        subprocess.run(["python", "no_minigame.py"], 
+                                     check=True, 
+                                     env=env,
+                                     stderr=subprocess.DEVNULL if sys.platform == 'darwin' else None)
+                        return  # Exit after launching game
+                    except FileNotFoundError:
+                        print("Could not find the MINI_GAME.py file")
+                    except subprocess.CalledProcessError as e:
+                        print(f"Error running no_minigame.py: {e}")
+                else:
+                    print("Failed to switch to minigame branch")
+        
+    finally:
+        pygame.quit()
 
-# Run the main function
 if __name__ == "__main__":
-    main()
+    # Suppress stdout/stderr for the entire script on macOS
+    if sys.platform == 'darwin':
+        with open(os.devnull, 'w') as fnull:
+            stderr_backup = sys.stderr
+            stdout_backup = sys.stdout
+            sys.stderr = fnull
+            sys.stdout = fnull
+            main()
+            sys.stderr = stderr_backup
+            sys.stdout = stdout_backup
+    else:
+        main()
